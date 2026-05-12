@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\danyel\\\\Desktop\\\\PROJETOS AI\\\\CLAUDE CODE\\\\Íris\" -Recurse -Force | ForEach-Object { $_.FullName } | Sort-Object)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\danyel\\\\Desktop\\\\PROJETOS AI\\\\CLAUDE CODE\\\\Íris\" -Force | ForEach-Object { $_.Name })",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\danyel\\\\Desktop\\\\PROJETOS AI\\\\CLAUDE CODE\\\\Íris\\\\.claude\" -Force | ForEach-Object { $_.Name })",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\danyel\\\\Desktop\\\\PROJETOS AI\\\\CLAUDE CODE\\\\Íris\" -Force -File | ForEach-Object { $_.Name })",
+      "PowerShell(ls -Force \"C:\\\\Users\\\\danyel\\\\Desktop\\\\PROJETOS AI\\\\CLAUDE CODE\\\\Íris\" | Where-Object { $_.PSIsContainer -eq $false } | ForEach-Object { $_.Name })",
+      "PowerShell(Test-Path \"C:\\\\Users\\\\danyel\\\\Desktop\\\\PROJETOS AI\\\\CLAUDE CODE\\\\Íris\" -PathType Container; \\(Get-Item \"C:\\\\Users\\\\danyel\\\\Desktop\\\\PROJETOS AI\\\\CLAUDE CODE\\\\Íris\" -Force\\).PSChildName; \\(ls -Force \"C:\\\\Users\\\\danyel\\\\Desktop\\\\PROJETOS AI\\\\CLAUDE CODE\\\\Íris\"\\).Count)",
+      "PowerShell(Get-Item \"C:\\\\Users\\\\danyel\\\\Desktop\\\\PROJETOS AI\\\\CLAUDE CODE\\\\Íris\" -Force | Get-ChildItem -Force -Recurse | ForEach-Object { if \\($_.PSIsContainer\\) { \"[DIR]  \" } else { \"[FILE] \" }; $_.FullName.Replace\\(\"C:\\\\Users\\\\danyel\\\\Desktop\\\\PROJETOS AI\\\\CLAUDE CODE\\\\Íris\\\\\", \"\"\\) })",
+      "Bash(npm --version)",
+      "Bash(npm show *)",
+      "Bash(npm create *)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\danyel\\\\Desktop\\\\PROJETOS AI\\\\CLAUDE CODE\\\\Íris\" -Recurse -Directory)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)",
+      "Bash(python -c \"from raganything import RAGAnything; print\\('OK'\\)\")",
+      "Bash(pip list *)",
+      "Bash(git init *)",
+      "Bash(git remote *)",
+      "Bash(git add *)"
+    ]
+  }
+}

@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --color-primary: #0F6E8C;
+  --color-primary-light: #e8f4f8;
+  --color-sidebar: #F8F8F6;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-text-muted: #9CA3AF;
+}
+
+* {
+  font-family: var(--font-sans);
+}
+
+body {
+  background: #ffffff;
+  color: #111827;
+}
+
+:root {
+  --page-padding: 28px;
+  --card-padding: 20px 22px;
+  --row-padding: 11px 16px;
+
+  --border-radius-card: 10px;
+  --border-radius-badge: 5px;
+  --border-radius-btn: 7px;
+
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-modal: 0 20px 60px rgba(0,0,0,0.12);
+
+  --status-recebido-bg: #F0F0F0;
+  --status-recebido-text: #666666;
+  --status-revisao-bg: #EBF3FF;
+  --status-revisao-text: #0F6E8C;
+  --status-pendente-bg: #FFF8E6;
+  --status-pendente-text: #916A00;
+  --status-assinado-bg: #E8F7EE;
+  --status-assinado-text: #1A7A3F;
+  --status-arquivado-bg: #F0F0F0;
+  --status-arquivado-text: #444444;
+}
+
+.font-mono {
+  font-family: 'DM Mono', monospace !important;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 2px;
+}
