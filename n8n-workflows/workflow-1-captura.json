@@ -1,5 +1,5 @@
 {
-  "name": "Íris — Captura de Documentos WhatsApp",
+  "name": "Virginia — Captura de Documentos WhatsApp",
   "nodes": [
     {
       "id": "a1b2c3d4-0001-0001-0001-000000000001",
@@ -44,7 +44,7 @@
       "position": [680, 220],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.IRIS_BACKEND_URL }}/api/whatsapp/status",
+        "url": "={{ $env.VIRGINIA_BACKEND_URL }}/api/whatsapp/status",
         "options": { "response": { "response": { "responseFormat": "json" } } }
       }
     },
@@ -112,7 +112,7 @@
       "position": [1340, 120],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.IRIS_BACKEND_URL }}/api/upload/",
+        "url": "={{ $env.VIRGINIA_BACKEND_URL }}/api/upload/",
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
@@ -133,7 +133,7 @@
       "position": [1340, 260],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.IRIS_BACKEND_URL }}/api/upload/",
+        "url": "={{ $env.VIRGINIA_BACKEND_URL }}/api/upload/",
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
@@ -154,7 +154,7 @@
       "position": [1340, 400],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.IRIS_BACKEND_URL }}/api/upload/",
+        "url": "={{ $env.VIRGINIA_BACKEND_URL }}/api/upload/",
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
@@ -273,5 +273,5 @@
     "callerPolicy": "workflowsFromSameOwner"
   },
   "staticData": null,
-  "tags": [{ "name": "iris" }]
+  "tags": [{ "name": "virginia" }]
 }

@@ -1,8 +1,8 @@
-# IRIS — Fase 2: Design System + Specs Detalhadas por Página
+﻿# VIRGINIA — Fase 2: Design System + Specs Detalhadas por Página
 
 ## Contexto
 
-O projeto Iris já está construído e funcionando com:
+O projeto VIRGINIA já está construído e funcionando com:
 - React + Vite + TypeScript + Tailwind CSS
 - Dados mockados em src/data/documents.json (20 documentos)
 - Páginas: Visão Geral, Documentos, Pendentes, Alertas, Busca, Configurações

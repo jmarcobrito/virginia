@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import documents, search, upload, activity, settings, whatsapp
 
-app = FastAPI(title="Iris API", version="3.0.0")
+app = FastAPI(title="Virginia API", version="3.0.0")
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,6 +1,6 @@
 from app.database import supabase
 
-BUCKET = "iris-documents"
+BUCKET = "virginia-documents"
 
 
 async def upload_file(local_path: str, storage_path: str) -> str:

@@ -1,8 +1,8 @@
-# IRIS — Fase 4: N8n + WhatsApp Business API
+﻿# VIRGINIA — Fase 4: N8n + WhatsApp Business API
 
 ## Contexto do projeto
 
-O Iris já tem:
+O VIRGINIA já tem:
 - **Fase 1 e 2:** Frontend React + TypeScript + Tailwind funcionando
 - **Fase 3:** Backend FastAPI com Claude Vision, RAG-Anything, Whisper e Supabase
 
@@ -205,7 +205,7 @@ const docs = $input.all();
 const criticos = docs.filter(d => d.json.days_to_expire <= 7);
 const atencao = docs.filter(d => d.json.days_to_expire > 7);
 
-let msg = "📋 *Iris — Alertas do dia*\n\n";
+let msg = "📋 *VIRGINIA — Alertas do dia*\n\n";
 
 if (criticos.length > 0) {
   msg += "🔴 *CRÍTICO — Vence em até 7 dias:*\n";
@@ -260,7 +260,7 @@ Configurar em Settings → Environment Variables no painel N8n:
 ```
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_SERVICE_KEY=your_service_key
-IRIS_BACKEND_URL=http://localhost:8000
+VIRGINIA_BACKEND_URL=http://localhost:8000
 EVOLUTION_API_URL=http://localhost:8080
 EVOLUTION_API_KEY=your_evolution_key
 WHATSAPP_INSTANCE=monarca

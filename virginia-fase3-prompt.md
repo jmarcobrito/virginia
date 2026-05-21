@@ -1,12 +1,12 @@
-# IRIS — Fase 3: Backend + RAG-Anything + Claude Vision + Supabase
+﻿# VIRGINIA — Fase 3: Backend + RAG-Anything + Claude Vision + Supabase
 
 ## Contexto do projeto
 
-O Iris é um sistema de gestão inteligente de documentos para o Grupo Monarca. O frontend (React + Vite + TypeScript + Tailwind) já está construído e funcionando com dados mockados nas fases 1 e 2.
+O VIRGINIA é um sistema de gestão inteligente de documentos para o Grupo Monarca. O frontend (React + Vite + TypeScript + Tailwind) já está construído e funcionando com dados mockados nas fases 1 e 2.
 
 **O objetivo desta fase é substituir os dados mockados por um backend real**, conectar o Supabase como banco de dados, integrar o RAG-Anything como engine de busca semântica, e usar Claude Vision para extração automática de metadados de documentos.
 
-Ao final desta fase, o Iris vai:
+Ao final desta fase, o VIRGINIA vai:
 - Receber documentos reais via upload manual no dashboard
 - Processar PDFs, imagens e áudios automaticamente
 - Extrair metadados com Claude Vision (tipo, partes, valor, vencimento)
@@ -33,7 +33,7 @@ Ao final desta fase, o Iris vai:
 ## Estrutura de pastas do backend
 
 ```
-iris-backend/
+VIRGINIA-backend/
 ├── app/
 │   ├── main.py                  ← FastAPI app principal
 │   ├── config.py                ← variáveis de ambiente
@@ -139,7 +139,7 @@ create policy "allow_all_settings" on settings for all using (true);
 ```
 
 Criar bucket no Supabase Storage:
-- Nome: `iris-documents`
+- Nome: `VIRGINIA-documents`
 - Público: não
 - Tamanho máximo: 50MB
 
@@ -213,7 +213,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import documents, search, upload, activity
 
-app = FastAPI(title="Iris API", version="3.0.0")
+app = FastAPI(title="VIRGINIA API", version="3.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -629,14 +629,14 @@ Adicionar `VITE_API_URL=http://localhost:8000` no `.env` do frontend.
 
 ```bash
 # Backend
-cd iris-backend
+cd VIRGINIA-backend
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 
 # Frontend (sem mudança)
-cd iris-dashboard
+cd VIRGINIA-dashboard
 npm run dev
 ```
 
@@ -644,10 +644,10 @@ npm run dev
 
 ## Ordem de execução desta fase
 
-1. Criar projeto `iris-backend/` com a estrutura acima
+1. Criar projeto `VIRGINIA-backend/` com a estrutura acima
 2. Configurar `.env` com chaves do Supabase e Anthropic
 3. Rodar o schema SQL no Supabase
-4. Criar bucket `iris-documents` no Supabase Storage
+4. Criar bucket `VIRGINIA-documents` no Supabase Storage
 5. Implementar `config.py` e `database.py`
 6. Implementar `claude_vision.py` e testar extração com um PDF
 7. Implementar `storage_service.py`

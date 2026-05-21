@@ -100,7 +100,7 @@ async def get_status():
 @router.post("/connect")
 async def connect_new():
     """Cria nova instância na Evolution API e retorna QR code como base64."""
-    new_instance = f"iris-{int(time.time())}"
+    new_instance = f"virginia-{int(time.time())}"
 
     async with httpx.AsyncClient() as client:
         try:

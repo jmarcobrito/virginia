@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     app_port: int = 8000
     app_env: str = "development"
     evolution_api_url: str = "http://localhost:8080"
-    evolution_api_key: str = "iris_evo_key"
+    evolution_api_key: str = "virginia_evo_key"
     n8n_url: str = "http://host.docker.internal:5678"
 
     class Config:

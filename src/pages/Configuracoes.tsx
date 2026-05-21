@@ -256,7 +256,7 @@ export default function Configuracoes() {
     showToast,
   } = useApp()
 
-  const [categories, setCategories] = useLocalStorage<string[]>('iris_categories', DEFAULT_CATEGORIES)
+  const [categories, setCategories] = useLocalStorage<string[]>('virginia_categories', DEFAULT_CATEGORIES)
   const [newCategoryInput, setNewCategoryInput] = useState('')
   const [showNewInput, setShowNewInput] = useState(false)
   const [editingIdx, setEditingIdx] = useState<number | null>(null)

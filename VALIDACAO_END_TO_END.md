@@ -1,4 +1,4 @@
-# Validação End-to-End — Íris
+﻿# Validação End-to-End — Virginia
 > Auditoria completa do fluxo CEO → WhatsApp → Backend → Dashboard → Alertas  
 > Data: 2026-05-21
 

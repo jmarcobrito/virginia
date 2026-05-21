@@ -1,8 +1,8 @@
-# IRIS — Fase 5: Agente Claude (WhatsApp + Dashboard)
+﻿# VIRGINIA — Fase 5: Agente Claude (WhatsApp + Dashboard)
 
 ## Contexto do projeto
 
-O Iris já tem todas as fases anteriores funcionando:
+O VIRGINIA já tem todas as fases anteriores funcionando:
 
 - **Fase 1 e 2:** Frontend React + TypeScript + Tailwind com design system completo
 - **Fase 3:** Backend FastAPI + Claude Vision + RAG-Anything + Whisper + Supabase
@@ -60,7 +60,7 @@ O agente usa Claude API como cérebro. O mesmo contexto serve os dois canais.
 ## Estrutura de arquivos — adicionar no backend existente
 
 ```
-iris-backend/
+VIRGINIA-backend/
 ├── app/
 │   ├── routers/
 │   │   └── agent.py          ← novo router
@@ -113,7 +113,7 @@ async def search_documents(query: str) -> dict:
 
 TOOL_DEFINITION = {
     "name": "search_documents",
-    "description": "Busca documentos no sistema Iris por nome, tipo, partes envolvidas ou conteúdo. Use quando a assistente pedir para encontrar um documento específico.",
+    "description": "Busca documentos no sistema VIRGINIA por nome, tipo, partes envolvidas ou conteúdo. Use quando a assistente pedir para encontrar um documento específico.",
     "input_schema": {
         "type": "object",
         "properties": {
@@ -292,7 +292,7 @@ from app.tools import search_tool, list_tool, status_tool, alert_tool
 
 client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
 
-SYSTEM_PROMPT = """Você é o Iris, assistente inteligente de gestão de documentos do Grupo Monarca.
+SYSTEM_PROMPT = """Você é o VIRGINIA, assistente inteligente de gestão de documentos do Grupo Monarca.
 
 Você ajuda Mariana, assistente executiva do CEO, a encontrar, organizar e gerenciar documentos corporativos.
 
@@ -656,7 +656,7 @@ export default function AgentChat({ onAction }: AgentChatProps) {
       }}>
         <Bot size={15} style={{ color: "var(--accent)" }} />
         <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>
-          Iris — Agente
+          VIRGINIA — Agente
         </span>
       </div>
 
