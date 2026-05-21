@@ -1,0 +1,241 @@
+{
+  "name": "Íris — Alertas de Vencimento WhatsApp",
+  "nodes": [
+    {
+      "id": "b2c3d4e5-0001-0001-0001-000000000001",
+      "name": "Cron 08h diário",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 8 * * *" }]
+        }
+      }
+    },
+    {
+      "id": "b2c3d4e5-0002-0002-0002-000000000002",
+      "name": "Alertas ativos?",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.IRIS_BACKEND_URL }}/api/settings/whatsapp_alerts_enabled",
+        "options": {}
+      }
+    },
+    {
+      "id": "b2c3d4e5-0003-0003-0003-000000000003",
+      "name": "Check alertas habilitados",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "cond-003",
+              "leftValue": "={{ $json.value }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "b2c3d4e5-0004-0004-0004-000000000004",
+      "name": "Status WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 220],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.IRIS_BACKEND_URL }}/api/whatsapp/status",
+        "options": {}
+      }
+    },
+    {
+      "id": "b2c3d4e5-0005-0005-0005-000000000005",
+      "name": "WhatsApp conectado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 220],
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "cond-004",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "connected",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "b2c3d4e5-0006-0006-0006-000000000006",
+      "name": "Buscar documentos vencendo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 140],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/documents",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "select", "value": "id,name,type,days_to_expire,expires_at" },
+            { "name": "days_to_expire", "value": "lte.30" },
+            { "name": "status", "value": "neq.arquivado" },
+            { "name": "order", "value": "days_to_expire.asc" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b2c3d4e5-0007-0007-0007-000000000007",
+      "name": "Montar mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 140],
+      "parameters": {
+        "jsCode": "const docs = $input.all();\nif (!docs.length) return [{ json: { skip: true, message: '', total: 0 } }];\n\nconst criticos = docs.filter(d => d.json.days_to_expire <= 7);\nconst atencao = docs.filter(d => d.json.days_to_expire > 7 && d.json.days_to_expire <= 30);\n\nlet msg = '📋 *Íris — Alertas do dia*\\n\\n';\n\nif (criticos.length > 0) {\n  msg += '🔴 *CRÍTICO — Vence em até 7 dias:*\\n';\n  criticos.forEach(d => {\n    msg += `• ${d.json.name} — *${d.json.days_to_expire} dias*\\n`;\n  });\n  msg += '\\n';\n}\n\nif (atencao.length > 0) {\n  msg += '🟡 *ATENÇÃO — Vence em até 30 dias:*\\n';\n  atencao.forEach(d => {\n    msg += `• ${d.json.name} — ${d.json.days_to_expire} dias\\n`;\n  });\n}\n\nreturn [{ json: { skip: false, message: msg, total: docs.length } }];"
+      }
+    },
+    {
+      "id": "b2c3d4e5-0008-0008-0008-000000000008",
+      "name": "Tem documentos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1780, 140],
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "cond-005",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "false" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "b2c3d4e5-0009-0009-0009-000000000009",
+      "name": "Enviar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2000, 80],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $('Status WhatsApp').item.json.instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.EVOLUTION_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $env.ALERT_PHONE_NUMBER }}\",\n  \"text\": \"{{ $('Montar mensagem').item.json.message }}\"\n}",
+        "options": {}
+      }
+    },
+    {
+      "id": "b2c3d4e5-0010-0010-0010-000000000010",
+      "name": "Registrar atividade",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2220, 80],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.IRIS_BACKEND_URL }}/api/activity/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"alert\",\n  \"text\": \"Alertas de vencimento enviados via WhatsApp ({{ $('Montar mensagem').item.json.total }} documentos)\",\n  \"metadata\": { \"source\": \"n8n_cron\" }\n}",
+        "options": {}
+      }
+    },
+    {
+      "id": "b2c3d4e5-0011-0011-0011-000000000011",
+      "name": "Nada a enviar",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [2000, 240],
+      "parameters": {}
+    },
+    {
+      "id": "b2c3d4e5-0012-0012-0012-000000000012",
+      "name": "Alertas desativados",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [680, 420],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Cron 08h diário": {
+      "main": [[{ "node": "Alertas ativos?", "type": "main", "index": 0 }]]
+    },
+    "Alertas ativos?": {
+      "main": [[{ "node": "Check alertas habilitados", "type": "main", "index": 0 }]]
+    },
+    "Check alertas habilitados": {
+      "main": [
+        [{ "node": "Status WhatsApp", "type": "main", "index": 0 }],
+        [{ "node": "Alertas desativados", "type": "main", "index": 0 }]
+      ]
+    },
+    "Status WhatsApp": {
+      "main": [[{ "node": "WhatsApp conectado?", "type": "main", "index": 0 }]]
+    },
+    "WhatsApp conectado?": {
+      "main": [
+        [{ "node": "Buscar documentos vencendo", "type": "main", "index": 0 }],
+        [{ "node": "Nada a enviar", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar documentos vencendo": {
+      "main": [[{ "node": "Montar mensagem", "type": "main", "index": 0 }]]
+    },
+    "Montar mensagem": {
+      "main": [[{ "node": "Tem documentos?", "type": "main", "index": 0 }]]
+    },
+    "Tem documentos?": {
+      "main": [
+        [{ "node": "Enviar WhatsApp", "type": "main", "index": 0 }],
+        [{ "node": "Nada a enviar", "type": "main", "index": 0 }]
+      ]
+    },
+    "Enviar WhatsApp": {
+      "main": [[{ "node": "Registrar atividade", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [{ "name": "iris" }]
+}

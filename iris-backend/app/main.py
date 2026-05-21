@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import documents, search, upload, activity, settings
+from app.routers import documents, search, upload, activity, settings, whatsapp
 
 app = FastAPI(title="Iris API", version="3.0.0")
 
@@ -17,6 +17,7 @@ app.include_router(search.router, prefix="/api/search", tags=["search"])
 app.include_router(upload.router, prefix="/api/upload", tags=["upload"])
 app.include_router(activity.router, prefix="/api/activity", tags=["activity"])
 app.include_router(settings.router, prefix="/api/settings", tags=["settings"])
+app.include_router(whatsapp.router, prefix="/api/whatsapp", tags=["whatsapp"])
 
 
 @app.get("/api/health")

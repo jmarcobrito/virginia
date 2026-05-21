@@ -1,0 +1,277 @@
+{
+  "name": "Íris — Captura de Documentos WhatsApp",
+  "nodes": [
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000001",
+      "name": "WhatsApp Incoming",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "path": "whatsapp-incoming",
+        "httpMethod": "POST",
+        "responseMode": "onReceived",
+        "responseData": "firstEntryJson",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0002-0002-0002-000000000002",
+      "name": "Tem arquivo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-001",
+              "leftValue": "={{ $json.data.message.mediaUrl !== undefined || $json.data.message.hasMedia === true }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0003-0003-0003-000000000003",
+      "name": "Buscar instância ativa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 220],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.IRIS_BACKEND_URL }}/api/whatsapp/status",
+        "options": { "response": { "response": { "responseFormat": "json" } } }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0004-0004-0004-000000000004",
+      "name": "Baixar arquivo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 220],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/download/{{ $('WhatsApp Incoming').item.json.instance }}/{{ $('WhatsApp Incoming').item.json.data.key.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "apikey", "value": "={{ $env.EVOLUTION_API_KEY }}" }]
+        },
+        "options": { "response": { "response": { "responseFormat": "file" } } }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0005-0005-0005-000000000005",
+      "name": "Tipo de arquivo",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1120, 220],
+      "parameters": {
+        "mode": "expression",
+        "output": "single",
+        "rules": {
+          "rules": [
+            {
+              "conditions": {
+                "conditions": [{ "leftValue": "={{ $('WhatsApp Incoming').item.json.data.message.mimetype }}", "rightValue": "application/pdf", "operator": { "type": "string", "operation": "startsWith" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PDF"
+            },
+            {
+              "conditions": {
+                "conditions": [{ "leftValue": "={{ $('WhatsApp Incoming').item.json.data.message.mimetype }}", "rightValue": "image/", "operator": { "type": "string", "operation": "startsWith" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Imagem"
+            },
+            {
+              "conditions": {
+                "conditions": [{ "leftValue": "={{ $('WhatsApp Incoming').item.json.data.message.mimetype }}", "rightValue": "audio/", "operator": { "type": "string", "operation": "startsWith" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Audio"
+            }
+          ]
+        },
+        "fallbackOutput": "none"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0006-0006-0006-000000000006",
+      "name": "Upload PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 120],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.IRIS_BACKEND_URL }}/api/upload/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            { "parameterType": "formBinaryData", "name": "file", "inputDataFieldName": "data" },
+            { "name": "origin", "value": "whatsapp" },
+            { "name": "whatsapp_message_id", "value": "={{ $('WhatsApp Incoming').item.json.data.key.id }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0007-0007-0007-000000000007",
+      "name": "Upload Imagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 260],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.IRIS_BACKEND_URL }}/api/upload/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            { "parameterType": "formBinaryData", "name": "file", "inputDataFieldName": "data" },
+            { "name": "origin", "value": "whatsapp" },
+            { "name": "whatsapp_message_id", "value": "={{ $('WhatsApp Incoming').item.json.data.key.id }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0008-0008-0008-000000000008",
+      "name": "Upload Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 400],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.IRIS_BACKEND_URL }}/api/upload/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            { "parameterType": "formBinaryData", "name": "file", "inputDataFieldName": "data" },
+            { "name": "origin", "value": "whatsapp" },
+            { "name": "whatsapp_message_id", "value": "={{ $('WhatsApp Incoming').item.json.data.key.id }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0009-0009-0009-000000000009",
+      "name": "Upload OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1560, 260],
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "cond-002",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0010-0010-0010-000000000010",
+      "name": "Registrar na fila de retry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 360],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/upload_queue",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"whatsapp_message_id\": \"{{ $('WhatsApp Incoming').item.json.data.key.id }}\",\n  \"whatsapp_instance\": \"{{ $('WhatsApp Incoming').item.json.instance }}\",\n  \"error_reason\": \"Upload falhou: {{ $json.detail || 'erro desconhecido' }}\"\n}",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0011-0011-0011-000000000011",
+      "name": "Sucesso",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1780, 200],
+      "parameters": {}
+    },
+    {
+      "id": "a1b2c3d4-0012-0012-0012-000000000012",
+      "name": "Ignorar (sem arquivo)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [460, 460],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "WhatsApp Incoming": {
+      "main": [[{ "node": "Tem arquivo?", "type": "main", "index": 0 }]]
+    },
+    "Tem arquivo?": {
+      "main": [
+        [{ "node": "Buscar instância ativa", "type": "main", "index": 0 }],
+        [{ "node": "Ignorar (sem arquivo)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar instância ativa": {
+      "main": [[{ "node": "Baixar arquivo", "type": "main", "index": 0 }]]
+    },
+    "Baixar arquivo": {
+      "main": [[{ "node": "Tipo de arquivo", "type": "main", "index": 0 }]]
+    },
+    "Tipo de arquivo": {
+      "main": [
+        [{ "node": "Upload PDF", "type": "main", "index": 0 }],
+        [{ "node": "Upload Imagem", "type": "main", "index": 0 }],
+        [{ "node": "Upload Audio", "type": "main", "index": 0 }]
+      ]
+    },
+    "Upload PDF": {
+      "main": [[{ "node": "Upload OK?", "type": "main", "index": 0 }]]
+    },
+    "Upload Imagem": {
+      "main": [[{ "node": "Upload OK?", "type": "main", "index": 0 }]]
+    },
+    "Upload Audio": {
+      "main": [[{ "node": "Upload OK?", "type": "main", "index": 0 }]]
+    },
+    "Upload OK?": {
+      "main": [
+        [{ "node": "Sucesso", "type": "main", "index": 0 }],
+        [{ "node": "Registrar na fila de retry", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [{ "name": "iris" }]
+}

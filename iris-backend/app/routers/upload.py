@@ -1,4 +1,5 @@
-from fastapi import APIRouter, UploadFile, File
+from typing import Optional
+from fastapi import APIRouter, Form, UploadFile, File
 from app.services import claude_vision, rag_service, audio_service, storage_service
 from app.database import supabase
 import tempfile
@@ -10,7 +11,11 @@ router = APIRouter()
 
 
 @router.post("/")
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(
+    file: UploadFile = File(...),
+    origin: str = Form("manual"),
+    whatsapp_message_id: Optional[str] = Form(None),
+):
     """
     Fluxo completo de upload:
     1. Salva arquivo temporariamente
@@ -70,7 +75,7 @@ async def upload_document(file: UploadFile = File(...)):
             "name": metadata.get("name", file.filename),
             "type": metadata.get("type", "Outro"),
             "status": "recebido",
-            "origin": "manual",
+            "origin": origin,
             "format": file_format,
             "size_bytes": len(content),
             "file_url": file_url,
@@ -82,6 +87,7 @@ async def upload_document(file: UploadFile = File(...)):
             "raw_text": text_for_rag,
             "expires_at": metadata.get("expires_at"),
             "days_to_expire": days_to_expire,
+            "whatsapp_message_id": whatsapp_message_id,
         }
 
         supabase.table("documents").insert(doc_data).execute()
@@ -96,9 +102,9 @@ async def upload_document(file: UploadFile = File(...)):
         supabase.table("activity_log").insert(
             {
                 "type": "upload",
-                "text": f"Documento '{doc_data['name']}' recebido via upload manual",
+                "text": f"Documento '{doc_data['name']}' recebido via {origin}",
                 "document_id": document_id,
-                "metadata": {"format": file_format, "origin": "manual"},
+                "metadata": {"format": file_format, "origin": origin},
             }
         ).execute()
 

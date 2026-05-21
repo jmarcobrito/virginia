@@ -92,4 +92,18 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ value }),
     }).then((r) => r.json()),
+
+  whatsapp: {
+    status: (): Promise<{ status: string; instance: string | null; phone: string | null }> =>
+      fetch(`${API_BASE}/api/whatsapp/status`).then((r) => r.json()),
+
+    connect: (): Promise<{ instance: string; qr: string }> =>
+      fetch(`${API_BASE}/api/whatsapp/connect`, { method: 'POST' }).then((r) => r.json()),
+
+    qr: (instance: string): Promise<{ status: string; qr: string | null; phone: string | null }> =>
+      fetch(`${API_BASE}/api/whatsapp/qr/${instance}`).then((r) => r.json()),
+
+    disconnect: (): Promise<{ success: boolean }> =>
+      fetch(`${API_BASE}/api/whatsapp/disconnect`, { method: 'DELETE' }).then((r) => r.json()),
+  },
 }

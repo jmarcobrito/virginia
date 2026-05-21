@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     rag_working_dir: str = "./rag_storage"
     app_port: int = 8000
     app_env: str = "development"
+    evolution_api_url: str = "http://localhost:8080"
+    evolution_api_key: str = "iris_evo_key"
+    n8n_url: str = "http://host.docker.internal:5678"
 
     class Config:
         env_file = ".env"

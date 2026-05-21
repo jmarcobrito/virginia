@@ -27,3 +27,15 @@ npm-debug.log*
 
 # TypeScript
 *.tsbuildinfo
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# RAG storage
+rag_storage/
+
+# Claude Code
+.claude/
