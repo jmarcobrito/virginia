@@ -6,11 +6,11 @@ app = FastAPI(title="Virginia API", version="3.0.0")
 
 app.add_middleware(
     CORSMiddleware,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:5174",
         "https://virginia-swart.vercel.app",
-        "https://*.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
