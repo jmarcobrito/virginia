@@ -1,4 +1,4 @@
-import type { Documento, TipoDocumento, StatusDocumento, OrigemDocumento } from '@/types'
+import type { Documento, TipoDocumento, StatusDocumento, OrigemDocumento, Cheque, Payment, ContractAddendum } from '@/types'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -106,4 +106,46 @@ export const api = {
     disconnect: (): Promise<{ success: boolean }> =>
       fetch(`${API_BASE}/api/whatsapp/disconnect`, { method: 'DELETE' }).then((r) => r.json()),
   },
+
+  getCheques: (params?: Record<string, string>): Promise<{ cheques: Cheque[]; total: number }> => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : ''
+    return fetch(`${API_BASE}/api/cheques/${qs}`).then((r) => r.json())
+  },
+
+  createCheque: (data: Partial<Cheque>): Promise<{ success: boolean; cheque: Cheque }> =>
+    fetch(`${API_BASE}/api/cheques/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then((r) => r.json()),
+
+  getPayments: (params?: Record<string, string>): Promise<{ payments: Payment[]; total: number }> => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : ''
+    return fetch(`${API_BASE}/api/payments/${qs}`).then((r) => r.json())
+  },
+
+  createPayment: (data: Partial<Payment>): Promise<{ success: boolean; payment: Payment }> =>
+    fetch(`${API_BASE}/api/payments/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then((r) => r.json()),
+
+  getContracts: (): Promise<{ contracts: Documento[]; total: number }> =>
+    fetch(`${API_BASE}/api/contracts/`)
+      .then((r) => r.json())
+      .then((data) => ({ ...data, contracts: (data.contracts ?? []).map(mapDocument) })),
+
+  getContractAddendums: (contractId: string): Promise<{ addendums: ContractAddendum[] }> =>
+    fetch(`${API_BASE}/api/contracts/${contractId}/addendums/`).then((r) => r.json()),
+
+  createContractAddendum: (
+    contractId: string,
+    data: Partial<ContractAddendum>
+  ): Promise<{ success: boolean; addendum: ContractAddendum }> =>
+    fetch(`${API_BASE}/api/contracts/${contractId}/addendums/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then((r) => r.json()),
 }

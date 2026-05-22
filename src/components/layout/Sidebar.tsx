@@ -6,6 +6,9 @@ import {
   Bell,
   Search,
   Settings,
+  FileText,
+  CreditCard,
+  Receipt,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useDocuments } from '@/hooks/useDocuments'
@@ -13,6 +16,9 @@ import { useDocuments } from '@/hooks/useDocuments'
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Visão Geral', end: true },
   { to: '/documentos', icon: FolderOpen, label: 'Documentos', end: false },
+  { to: '/contratos', icon: FileText, label: 'Contratos', end: false },
+  { to: '/cheques', icon: CreditCard, label: 'Cheques', end: false },
+  { to: '/pagamentos', icon: Receipt, label: 'Pagamentos', end: false },
   { to: '/pendentes', icon: Clock, label: 'Pendentes', end: false, badge: 'pending' as const },
   { to: '/alertas', icon: Bell, label: 'Alertas', end: false, badge: 'alerts' as const },
   { to: '/busca', icon: Search, label: 'Busca', end: false },
@@ -32,7 +38,7 @@ export function Sidebar() {
     <aside className="w-[220px] h-full flex-shrink-0 bg-[#F8F8F6] border-r border-black/[0.06] flex flex-col">
       <div className="px-5 pt-6 pb-5 border-b border-black/[0.06]">
         <div className="flex items-baseline gap-2">
-          <span className="text-[20px] font-semibold text-[#0F6E8C] tracking-tight">Íris</span>
+          <span className="text-[20px] font-semibold text-[#0F6E8C] tracking-tight">Virgínia</span>
         </div>
         <p className="text-[11px] text-gray-400 mt-0.5 font-medium tracking-wide uppercase">
           Grupo Monarca
