@@ -72,7 +72,7 @@
       "position": [1120, 220],
       "parameters": {
         "mode": "expression",
-        "output": "single",
+        "output": 0,
         "rules": {
           "rules": [
             {
@@ -80,28 +80,25 @@
                 "conditions": [{ "leftValue": "={{ $('WhatsApp Incoming').item.json.data.message.mimetype }}", "rightValue": "application/pdf", "operator": { "type": "string", "operation": "startsWith" } }],
                 "combinator": "and"
               },
-              "renameOutput": true,
-              "outputKey": "PDF"
+              "output": 0
             },
             {
               "conditions": {
                 "conditions": [{ "leftValue": "={{ $('WhatsApp Incoming').item.json.data.message.mimetype }}", "rightValue": "image/", "operator": { "type": "string", "operation": "startsWith" } }],
                 "combinator": "and"
               },
-              "renameOutput": true,
-              "outputKey": "Imagem"
+              "output": 1
             },
             {
               "conditions": {
                 "conditions": [{ "leftValue": "={{ $('WhatsApp Incoming').item.json.data.message.mimetype }}", "rightValue": "audio/", "operator": { "type": "string", "operation": "startsWith" } }],
                 "combinator": "and"
               },
-              "renameOutput": true,
-              "outputKey": "Audio"
+              "output": 2
             }
           ]
         },
-        "fallbackOutput": "none"
+        "fallbackOutput": 3
       }
     },
     {
