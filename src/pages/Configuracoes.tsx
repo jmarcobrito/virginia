@@ -261,6 +261,9 @@ export default function Configuracoes() {
   const [isDisconnecting, setIsDisconnecting] = useState(false)
   const statusPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // System status
+  const [n8nStatus, setN8nStatus] = useState<'connected' | 'pending'>('pending')
+
   const fetchWaStatus = useCallback(async () => {
     try {
       const res = await api.whatsapp.status()
@@ -272,12 +275,18 @@ export default function Configuracoes() {
 
   useEffect(() => {
     fetchWaStatus()
-    // Poll every 15s while modal is closed
     statusPollRef.current = setInterval(fetchWaStatus, 15000)
     return () => {
       if (statusPollRef.current) clearInterval(statusPollRef.current)
     }
   }, [fetchWaStatus])
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/system/status`)
+      .then((r) => r.json())
+      .then((data) => setN8nStatus(data.n8n === 'connected' ? 'connected' : 'pending'))
+      .catch(() => {})
+  }, [])
 
   async function handleDisconnect() {
     setIsDisconnecting(true)
@@ -561,7 +570,7 @@ export default function Configuracoes() {
               { label: 'Versão', value: 'v1.0.0', badge: null },
               { label: 'Status RAG', value: null, badge: 'pending' as const },
               { label: 'Status Supabase', value: null, badge: 'disconnected' as const },
-              { label: 'Status N8n', value: null, badge: 'pending' as const },
+              { label: 'Status N8n', value: null, badge: n8nStatus },
             ].map(({ label, value, badge }) => (
               <div
                 key={label}

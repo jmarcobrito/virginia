@@ -31,3 +31,12 @@ app.include_router(contracts.router,  prefix="/api/contracts",  tags=["contracts
 @app.get("/api/health")
 def health():
     return {"status": "ok", "version": "3.0.0"}
+
+
+@app.get("/api/system/status")
+def system_status():
+    from app.config import settings
+    n8n_configured = "n8n_url" in settings.model_fields_set
+    return {
+        "n8n": "connected" if n8n_configured else "pending",
+    }
