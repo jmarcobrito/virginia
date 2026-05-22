@@ -80,9 +80,7 @@ async def _promote_pending_to_active(client: httpx.AsyncClient, new_instance: st
 
 @router.get("/status")
 async def get_status():
-    active = _get_setting(ACTIVE_KEY)
-    if not active:
-        return {"status": "disconnected", "instance": None, "phone": None}
+    active = _get_setting(ACTIVE_KEY) or settings.evolution_instance_name
 
     async with httpx.AsyncClient() as client:
         try:
@@ -168,8 +166,43 @@ async def refresh_qr(instance: str):
 
 @router.get("/qrcode")
 async def get_qrcode():
-    instance = settings.evolution_api_key
+    instance = settings.evolution_instance_name
     async with httpx.AsyncClient() as client:
+        try:
+            # Verifica se a instância já existe
+            check = await client.get(
+                f"{settings.evolution_api_url}/instance/connectionState/{instance}",
+                headers=_headers(),
+                timeout=5.0,
+            )
+        except httpx.RequestError:
+            raise HTTPException(503, "Evolution API não está acessível")
+
+        # Cria a instância se não existir (404 = não encontrada)
+        if check.status_code == 404:
+            try:
+                create = await client.post(
+                    f"{settings.evolution_api_url}/instance/create",
+                    headers=_headers(),
+                    json={
+                        "instanceName": instance,
+                        "integration": "WHATSAPP-BAILEYS",
+                        "qrcode": True,
+                        "webhook": {
+                            "url": f"{settings.n8n_url}/webhook/whatsapp-incoming",
+                            "byEvents": False,
+                            "base64": False,
+                            "events": ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
+                        },
+                    },
+                    timeout=15.0,
+                )
+            except httpx.RequestError:
+                raise HTTPException(503, "Evolution API não está acessível")
+
+            if create.status_code not in (200, 201):
+                raise HTTPException(502, f"Evolution API: {create.text}")
+
         try:
             r = await client.get(
                 f"{settings.evolution_api_url}/instance/connect/{instance}",
