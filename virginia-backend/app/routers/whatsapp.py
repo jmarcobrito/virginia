@@ -166,6 +166,27 @@ async def refresh_qr(instance: str):
             raise HTTPException(503, "Evolution API não está acessível")
 
 
+@router.get("/qrcode")
+async def get_qrcode():
+    instance = settings.evolution_api_key
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.get(
+                f"{settings.evolution_api_url}/instance/connect/{instance}",
+                headers=_headers(),
+                timeout=10.0,
+            )
+        except httpx.RequestError:
+            raise HTTPException(503, "Evolution API não está acessível")
+
+        if r.status_code not in (200, 201):
+            raise HTTPException(502, f"Evolution API: {r.text}")
+
+        qr_data = r.json()
+        qr = qr_data.get("base64") or qr_data.get("qrcode", {}).get("base64")
+        return {"qr": qr}
+
+
 @router.delete("/disconnect")
 async def disconnect():
     active = _get_setting(ACTIVE_KEY)

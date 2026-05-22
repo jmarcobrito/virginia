@@ -107,6 +107,9 @@ export const api = {
       fetch(`${API_BASE}/api/whatsapp/disconnect`, { method: 'DELETE' }).then((r) => r.json()),
   },
 
+  getWhatsappQRCode: (): Promise<{ qr: string | null }> =>
+    fetch(`${API_BASE}/api/whatsapp/qrcode`).then((r) => r.json()),
+
   getCheques: (params?: Record<string, string>): Promise<{ cheques: Cheque[]; total: number }> => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : ''
     return fetch(`${API_BASE}/api/cheques/${qs}`).then((r) => r.json())

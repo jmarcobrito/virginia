@@ -80,7 +80,6 @@ function QrModal({
 }) {
   const [stage, setStage] = useState<'loading' | 'qr' | 'connected' | 'error'>('loading')
   const [qrImage, setQrImage] = useState<string | null>(null)
-  const [pendingInstance, setPendingInstance] = useState<string | null>(null)
   const [connectedPhone, setConnectedPhone] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -91,13 +90,13 @@ function QrModal({
     if (qrRefreshRef.current) clearInterval(qrRefreshRef.current)
   }
 
-  const startPolling = useCallback((instance: string) => {
+  const startPolling = useCallback(() => {
     stopPolling()
 
     // Poll connection status every 3s
     pollRef.current = setInterval(async () => {
       try {
-        const res = await api.whatsapp.qr(instance)
+        const res = await api.whatsapp.status()
         if (res.status === 'connected') {
           stopPolling()
           setConnectedPhone(res.phone ?? null)
@@ -105,8 +104,6 @@ function QrModal({
           setTimeout(() => {
             onConnected(res.phone ?? null)
           }, 2000)
-        } else if (res.qr) {
-          setQrImage(res.qr)
         }
       } catch {
         // silently continue polling
@@ -116,7 +113,7 @@ function QrModal({
     // Refresh QR image every 25s (Evolution API QR expires ~30s)
     qrRefreshRef.current = setInterval(async () => {
       try {
-        const res = await api.whatsapp.qr(instance)
+        const res = await api.getWhatsappQRCode()
         if (res.qr) setQrImage(res.qr)
       } catch {
         // ignore
@@ -127,13 +124,12 @@ function QrModal({
   useEffect(() => {
     let cancelled = false
 
-    api.whatsapp.connect()
+    api.getWhatsappQRCode()
       .then((res) => {
         if (cancelled) return
-        setPendingInstance(res.instance)
         if (res.qr) setQrImage(res.qr)
         setStage('qr')
-        startPolling(res.instance)
+        startPolling()
       })
       .catch(() => {
         if (cancelled) return
@@ -198,10 +194,7 @@ function QrModal({
               </div>
               <div className="flex items-center gap-1.5 text-xs text-gray-400">
                 <Loader2 size={11} className="animate-spin" />
-                Aguardando scan...
-                {pendingInstance && (
-                  <span className="font-mono text-[10px] text-gray-300 ml-1">{pendingInstance}</span>
-                )}
+                Aguardando leitura do QR Code...
               </div>
             </>
           )}
@@ -402,9 +395,7 @@ export default function Configuracoes() {
                   className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
                 >
                   <QrCode size={13} />
-                  {waState.status === 'disconnected' || waState.status === 'unreachable'
-                    ? 'Conectar WhatsApp'
-                    : 'Reconectar'}
+                  Conectar WhatsApp
                 </button>
               )}
 
