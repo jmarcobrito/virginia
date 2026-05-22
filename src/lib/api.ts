@@ -110,6 +110,16 @@ export const api = {
   getWhatsappQRCode: (): Promise<{ qr: string | null }> =>
     fetch(`${API_BASE}/api/whatsapp/qrcode`).then((r) => r.json()),
 
+  getAuthorizedSources: (): Promise<{ numbers: string[]; groups: string[] }> =>
+    fetch(`${API_BASE}/api/settings/authorized-sources`).then((r) => r.json()),
+
+  updateAuthorizedSources: (data: { numbers: string[]; groups: string[] }): Promise<{ success: boolean }> =>
+    fetch(`${API_BASE}/api/settings/authorized-sources`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then((r) => r.json()),
+
   getCheques: (params?: Record<string, string>): Promise<{ cheques: Cheque[]; total: number }> => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : ''
     return fetch(`${API_BASE}/api/cheques/${qs}`).then((r) => r.json())

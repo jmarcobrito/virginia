@@ -37,11 +37,52 @@
       }
     },
     {
+      "id": "a1b2c3d4-0013-0013-0013-000000000013",
+      "name": "Buscar fontes autorizadas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 220],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.VIRGINIA_BACKEND_URL }}/api/settings/authorized-sources",
+        "options": { "response": { "response": { "responseFormat": "json" } } }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0014-0014-0014-000000000014",
+      "name": "Fonte autorizada?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 220],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "cond-auth",
+              "leftValue": "={{ $('Buscar fontes autorizadas').item.json.numbers.includes($('WhatsApp Incoming').item.json.data.key.remoteJid.replace('@s.whatsapp.net', '')) || $('Buscar fontes autorizadas').item.json.groups.some(g => $('WhatsApp Incoming').item.json.data.key.remoteJid.includes(g)) }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0015-0015-0015-000000000015",
+      "name": "Ignorar (fonte não autorizada)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [900, 380],
+      "parameters": {}
+    },
+    {
       "id": "a1b2c3d4-0003-0003-0003-000000000003",
       "name": "Buscar instância ativa",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [680, 220],
+      "position": [1120, 220],
       "parameters": {
         "method": "GET",
         "url": "={{ $env.VIRGINIA_BACKEND_URL }}/api/whatsapp/status",
@@ -53,7 +94,7 @@
       "name": "Baixar arquivo",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 220],
+      "position": [1340, 220],
       "parameters": {
         "method": "GET",
         "url": "={{ $env.EVOLUTION_API_URL }}/message/download/{{ $('WhatsApp Incoming').item.json.instance }}/{{ $('WhatsApp Incoming').item.json.data.key.id }}",
@@ -69,7 +110,7 @@
       "name": "Tipo de arquivo",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [1120, 220],
+      "position": [1560, 220],
       "parameters": {
         "mode": "expression",
         "output": 0,
@@ -106,7 +147,7 @@
       "name": "Upload PDF",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1340, 120],
+      "position": [1780, 120],
       "parameters": {
         "method": "POST",
         "url": "={{ $env.VIRGINIA_BACKEND_URL }}/api/upload/",
@@ -127,7 +168,7 @@
       "name": "Upload Imagem",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1340, 260],
+      "position": [1780, 260],
       "parameters": {
         "method": "POST",
         "url": "={{ $env.VIRGINIA_BACKEND_URL }}/api/upload/",
@@ -148,7 +189,7 @@
       "name": "Upload Audio",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1340, 400],
+      "position": [1780, 400],
       "parameters": {
         "method": "POST",
         "url": "={{ $env.VIRGINIA_BACKEND_URL }}/api/upload/",
@@ -169,7 +210,7 @@
       "name": "Upload OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1560, 260],
+      "position": [2000, 260],
       "parameters": {
         "conditions": {
           "conditions": [
@@ -189,7 +230,7 @@
       "name": "Registrar na fila de retry",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1780, 360],
+      "position": [2220, 360],
       "parameters": {
         "method": "POST",
         "url": "={{ $env.SUPABASE_URL }}/rest/v1/upload_queue",
@@ -213,7 +254,7 @@
       "name": "Sucesso",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [1780, 200],
+      "position": [2220, 200],
       "parameters": {}
     },
     {
@@ -231,8 +272,17 @@
     },
     "Tem arquivo?": {
       "main": [
-        [{ "node": "Buscar instância ativa", "type": "main", "index": 0 }],
+        [{ "node": "Buscar fontes autorizadas", "type": "main", "index": 0 }],
         [{ "node": "Ignorar (sem arquivo)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar fontes autorizadas": {
+      "main": [[{ "node": "Fonte autorizada?", "type": "main", "index": 0 }]]
+    },
+    "Fonte autorizada?": {
+      "main": [
+        [{ "node": "Buscar instância ativa", "type": "main", "index": 0 }],
+        [{ "node": "Ignorar (fonte não autorizada)", "type": "main", "index": 0 }]
       ]
     },
     "Buscar instância ativa": {

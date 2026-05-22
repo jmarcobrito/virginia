@@ -4,6 +4,33 @@ from app.database import supabase
 router = APIRouter()
 
 
+@router.get("/authorized-sources")
+def get_authorized_sources():
+    numbers_row = supabase.table("settings").select("value").eq("key", "authorized_numbers").execute()
+    groups_row  = supabase.table("settings").select("value").eq("key", "authorized_groups").execute()
+
+    raw_numbers = numbers_row.data[0]["value"] if numbers_row.data else ""
+    raw_groups  = groups_row.data[0]["value"]  if groups_row.data  else ""
+
+    numbers = [n.strip() for n in raw_numbers.split(",") if n.strip()] if raw_numbers else []
+    groups  = [g.strip() for g in raw_groups.split(",")  if g.strip()] if raw_groups  else []
+    return {"numbers": numbers, "groups": groups}
+
+
+@router.post("/authorized-sources")
+def update_authorized_sources(body: dict):
+    numbers_val = ",".join(body.get("numbers", []))
+    groups_val  = ",".join(body.get("groups",  []))
+
+    for key, val in [("authorized_numbers", numbers_val), ("authorized_groups", groups_val)]:
+        existing = supabase.table("settings").select("key").eq("key", key).execute()
+        if existing.data:
+            supabase.table("settings").update({"value": val}).eq("key", key).execute()
+        else:
+            supabase.table("settings").insert({"key": key, "value": val}).execute()
+    return {"success": True}
+
+
 @router.get("/{key}")
 def get_setting(key: str):
     result = supabase.table("settings").select("value").eq("key", key).single().execute()

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { MessageCircle, Info, User, Bell, Tag, Pencil, Trash2, Check, X, Plus, RefreshCw, Loader2, CheckCircle2, WifiOff, QrCode, PhoneOff } from 'lucide-react'
+import { MessageCircle, Info, User, Bell, Tag, Pencil, Trash2, Check, X, Plus, RefreshCw, Loader2, CheckCircle2, WifiOff, QrCode, PhoneOff, Shield } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Toggle } from '@/components/ui/Toggle'
 import { useApp } from '@/context/AppContext'
@@ -7,6 +7,14 @@ import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { api } from '@/lib/api'
 
 const DEFAULT_CATEGORIES = ['Contrato', 'Nota Fiscal', 'Procuração', 'Escritura', 'Boleto', 'Orçamento', 'Outro']
+
+function formatPhone(raw: string): string {
+  const d = raw.replace(/\D/g, '')
+  if (d.length === 13) {
+    return `+${d.slice(0, 2)} (${d.slice(2, 4)}) ${d.slice(4, 9)}-${d.slice(9)}`
+  }
+  return raw
+}
 
 type WaStatus = 'connected' | 'connecting' | 'disconnected' | 'unreachable' | 'loading'
 
@@ -264,6 +272,13 @@ export default function Configuracoes() {
   // System status
   const [n8nStatus, setN8nStatus] = useState<'connected' | 'pending'>('pending')
 
+  // Fontes autorizadas
+  const [authNumbers, setAuthNumbers] = useState<string[]>([])
+  const [authGroups,  setAuthGroups]  = useState<string[]>([])
+  const [newNumber,   setNewNumber]   = useState('')
+  const [newGroup,    setNewGroup]    = useState('')
+  const [showGroupTip, setShowGroupTip] = useState(false)
+
   const fetchWaStatus = useCallback(async () => {
     try {
       const res = await api.whatsapp.status()
@@ -282,11 +297,50 @@ export default function Configuracoes() {
   }, [fetchWaStatus])
 
   useEffect(() => {
+    api.getAuthorizedSources()
+      .then((res) => {
+        setAuthNumbers(res.numbers)
+        setAuthGroups(res.groups)
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/system/status`)
       .then((r) => r.json())
       .then((data) => setN8nStatus(data.n8n === 'connected' ? 'connected' : 'pending'))
       .catch(() => {})
   }, [])
+
+  function addNumber() {
+    const n = newNumber.replace(/\D/g, '')
+    if (!n) return
+    const updated = [...authNumbers, n]
+    setAuthNumbers(updated)
+    setNewNumber('')
+    api.updateAuthorizedSources({ numbers: updated, groups: authGroups })
+  }
+
+  function removeNumber(idx: number) {
+    const updated = authNumbers.filter((_, i) => i !== idx)
+    setAuthNumbers(updated)
+    api.updateAuthorizedSources({ numbers: updated, groups: authGroups })
+  }
+
+  function addGroup() {
+    const g = newGroup.trim()
+    if (!g) return
+    const updated = [...authGroups, g]
+    setAuthGroups(updated)
+    setNewGroup('')
+    api.updateAuthorizedSources({ numbers: authNumbers, groups: updated })
+  }
+
+  function removeGroup(idx: number) {
+    const updated = authGroups.filter((_, i) => i !== idx)
+    setAuthGroups(updated)
+    api.updateAuthorizedSources({ numbers: authNumbers, groups: updated })
+  }
 
   async function handleDisconnect() {
     setIsDisconnecting(true)
@@ -456,6 +510,105 @@ export default function Configuracoes() {
                 </div>
               </div>
             )}
+          </div>
+        </Card>
+
+        {/* Fontes Autorizadas */}
+        <Card>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-8 h-8 rounded-lg bg-[#0F6E8C]/[0.08] flex items-center justify-center">
+              <Shield size={15} className="text-[#0F6E8C]" />
+            </div>
+            <h2 className="text-sm font-semibold text-gray-800">Fontes Autorizadas</h2>
+          </div>
+
+          {/* Números */}
+          <div className="space-y-3 mb-5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">
+              Números autorizados
+            </p>
+            <div className="flex flex-wrap gap-2 min-h-[28px]">
+              {authNumbers.map((num, i) => (
+                <span key={i} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
+                  {formatPhone(num)}
+                  <button onClick={() => removeNumber(i)} className="ml-0.5 text-gray-400 hover:text-red-500 transition-colors">
+                    <X size={11} />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={newNumber}
+                onChange={(e) => setNewNumber(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addNumber()}
+                placeholder="+55 (27) 99999-9999"
+                className="flex-1 text-sm border border-black/[0.1] rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#0F6E8C]/20"
+              />
+              <button
+                onClick={addNumber}
+                className="text-sm font-medium px-3 py-1.5 rounded-lg bg-[#0F6E8C] text-white hover:bg-[#0d5f79] transition-colors"
+              >
+                Adicionar
+              </button>
+            </div>
+          </div>
+
+          {/* Grupos */}
+          <div className="space-y-3 pt-4 border-t border-black/[0.06]">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">
+                Grupos autorizados
+              </p>
+              <div className="relative">
+                <button
+                  onClick={() => setShowGroupTip((v) => !v)}
+                  className="text-xs text-[#0F6E8C] hover:underline"
+                >
+                  Como encontrar o ID do grupo?
+                </button>
+                {showGroupTip && (
+                  <div className="absolute right-0 top-6 z-10 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-lg">
+                    O ID aparece nos logs do N8n quando uma mensagem do grupo é recebida.
+                    Procure o campo{' '}
+                    <span className="font-mono bg-gray-700 px-1 rounded">data.key.remoteJid</span>
+                    {' '}— ele termina com{' '}
+                    <span className="font-mono bg-gray-700 px-1 rounded">@g.us</span>.
+                    <button
+                      onClick={() => setShowGroupTip(false)}
+                      className="absolute top-1.5 right-1.5 text-gray-400 hover:text-white"
+                    >
+                      <X size={11} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 min-h-[28px]">
+              {authGroups.map((grp, i) => (
+                <span key={i} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 font-mono">
+                  {grp}
+                  <button onClick={() => removeGroup(i)} className="ml-0.5 text-gray-400 hover:text-red-500 transition-colors">
+                    <X size={11} />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={newGroup}
+                onChange={(e) => setNewGroup(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addGroup()}
+                placeholder="Cole o ID do grupo do WhatsApp"
+                className="flex-1 text-sm border border-black/[0.1] rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#0F6E8C]/20 font-mono"
+              />
+              <button
+                onClick={addGroup}
+                className="text-sm font-medium px-3 py-1.5 rounded-lg bg-[#0F6E8C] text-white hover:bg-[#0d5f79] transition-colors"
+              >
+                Adicionar
+              </button>
+            </div>
           </div>
         </Card>
 
