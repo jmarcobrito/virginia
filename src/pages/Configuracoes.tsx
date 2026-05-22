@@ -430,35 +430,30 @@ export default function Configuracoes() {
             <h2 className="text-sm font-semibold text-gray-800">Alertas</h2>
           </div>
           <div className="space-y-4">
-            <Toggle
-              enabled={whatsappAlertsEnabled}
-              onChange={setWhatsappAlertsEnabled}
-              label="Notificações via WhatsApp"
-              description="Alertas automáticos para documentos próximos ao vencimento"
-            />
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-800">Notificações via WhatsApp</p>
+                <p className="text-xs text-gray-400 mt-0.5">Alertas automáticos para documentos próximos ao vencimento</p>
+              </div>
+              <Toggle checked={whatsappAlertsEnabled} onChange={setWhatsappAlertsEnabled} />
+            </div>
             {whatsappAlertsEnabled && (
               <div className="pt-3 border-t border-black/[0.06] space-y-3">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">
                   Notificar quando
                 </p>
-                <Toggle
-                  enabled={alertVencendo30}
-                  onChange={setAlertVencendo30}
-                  label="Documentos vencendo em 30 dias"
-                  description=""
-                />
-                <Toggle
-                  enabled={alertVencendo7}
-                  onChange={setAlertVencendo7}
-                  label="Documentos vencendo em 7 dias"
-                  description=""
-                />
-                <Toggle
-                  enabled={alertNovosDocumentos}
-                  onChange={setAlertNovosDocumentos}
-                  label="Novos documentos recebidos"
-                  description=""
-                />
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-sm font-medium text-gray-800">Documentos vencendo em 30 dias</p>
+                  <Toggle checked={alertVencendo30} onChange={setAlertVencendo30} />
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-sm font-medium text-gray-800">Documentos vencendo em 7 dias</p>
+                  <Toggle checked={alertVencendo7} onChange={setAlertVencendo7} />
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-sm font-medium text-gray-800">Novos documentos recebidos</p>
+                  <Toggle checked={alertNovosDocumentos} onChange={setAlertNovosDocumentos} />
+                </div>
               </div>
             )}
           </div>
