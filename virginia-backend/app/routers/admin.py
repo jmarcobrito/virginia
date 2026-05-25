@@ -15,15 +15,18 @@ def list_users():
 
         users = []
         for user in user_list:
-            meta = (getattr(user, "user_metadata", None) or {})
+            meta = getattr(user, "user_metadata", None) or {}
+            created_at = getattr(user, "created_at", None)
+            last_sign_in = getattr(user, "last_sign_in_at", None)
+            banned_until = getattr(user, "banned_until", None)
             users.append({
                 "id": user.id,
                 "email": user.email,
                 "name": meta.get("full_name", ""),
                 "role": meta.get("role", "usuario"),
-                "created_at": user.created_at.isoformat() if user.created_at else None,
-                "last_sign_in_at": user.last_sign_in_at.isoformat() if user.last_sign_in_at else None,
-                "disabled": user.banned_until is not None,
+                "created_at": created_at.isoformat() if created_at else None,
+                "last_sign_in_at": last_sign_in.isoformat() if last_sign_in else None,
+                "disabled": banned_until is not None,
             })
         return {"users": users}
     except Exception as e:
