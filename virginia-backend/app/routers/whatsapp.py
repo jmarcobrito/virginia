@@ -256,5 +256,16 @@ async def disconnect():
                 detail="Logout enviado mas WhatsApp ainda está conectado. Tente novamente.",
             )
 
+        # 4. Deletar a instância para liberar recursos na Evolution API
+        try:
+            del_r = await client.delete(
+                f"{settings.evolution_api_url}/instance/delete/{active}",
+                headers=_headers(),
+                timeout=5.0,
+            )
+            logging.info("Evolution API delete instance — status: %s body: %s", del_r.status_code, del_r.text)
+        except Exception as e:
+            logging.warning("Evolution API delete instance falhou (não crítico): %s", e)
+
     _upsert_setting(ACTIVE_KEY, "")
     return {"success": True}
