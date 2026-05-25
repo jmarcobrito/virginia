@@ -228,6 +228,7 @@ async def disconnect():
         return {"success": True}
 
     async with httpx.AsyncClient() as client:
+        # 1. Chamar logout na Evolution API
         try:
             r = await client.delete(
                 f"{settings.evolution_api_url}/instance/logout/{active}",
@@ -237,6 +238,23 @@ async def disconnect():
             logging.info("Evolution API logout — status: %s body: %s", r.status_code, r.text)
         except httpx.RequestError as e:
             logging.warning("Evolution API logout falhou (RequestError): %s", e)
+            raise HTTPException(status_code=503, detail=f"Evolution API não acessível: {e}")
+
+        # 2. Verificar se Evolution API aceitou o logout
+        if r.status_code not in (200, 204):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Evolution API recusou logout (status {r.status_code}): {r.text}",
+            )
+
+        # 3. Verificar se a conexão foi de fato encerrada
+        state = await _connection_state(client, active)
+        logging.info("Estado após logout: %s (instância: %s)", state, active)
+        if state == "open":
+            raise HTTPException(
+                status_code=400,
+                detail="Logout enviado mas WhatsApp ainda está conectado. Tente novamente.",
+            )
 
     _upsert_setting(ACTIVE_KEY, "")
     return {"success": True}
