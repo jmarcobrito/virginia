@@ -15,8 +15,17 @@ import {
 import { cn } from '@/lib/utils'
 import { useDocuments } from '@/hooks/useDocuments'
 import { useAuth } from '@/contexts/AuthContext'
+import type { LucideIcon } from 'lucide-react'
 
-const baseNavItems = [
+interface NavItem {
+  to: string
+  icon: LucideIcon
+  label: string
+  end: boolean
+  badge?: 'pending' | 'alerts'
+}
+
+const baseNavItems: NavItem[] = [
   { to: '/', icon: LayoutDashboard, label: 'Visão Geral', end: true },
   { to: '/documentos', icon: FolderOpen, label: 'Documentos', end: false },
   { to: '/contratos', icon: FileText, label: 'Contratos', end: false },
@@ -28,7 +37,7 @@ const baseNavItems = [
   { to: '/configuracoes', icon: Settings, label: 'Configurações', end: false },
 ]
 
-const adminNavItem = { to: '/admin/usuarios', icon: Users, label: 'Administração', end: false }
+const adminNavItem: NavItem = { to: '/admin/usuarios', icon: Users, label: 'Administração', end: false }
 
 export function Sidebar() {
   const { pendingCount, expiringSoonCount } = useDocuments()
