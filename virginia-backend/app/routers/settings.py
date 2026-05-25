@@ -35,7 +35,7 @@ def update_authorized_sources(body: dict):
 def get_setting(key: str):
     result = supabase.table("settings").select("value").eq("key", key).execute()
     if not result.data:
-        return {"value": None}
+        return {"value": False}
     return result.data[0]
 
 
