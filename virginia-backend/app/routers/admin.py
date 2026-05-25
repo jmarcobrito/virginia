@@ -7,8 +7,7 @@ router = APIRouter()
 @router.get("/users")
 def list_users():
     try:
-        response = supabase.auth.admin.list_users(params={"per_page": 1000, "page": 1})
-        # supabase-py pode retornar lista direta ou objeto com .users
+        response = supabase.auth.admin.list_users()
         if isinstance(response, list):
             user_list = response
         else:
