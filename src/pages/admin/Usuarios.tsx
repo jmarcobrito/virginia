@@ -2,10 +2,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { Plus, RefreshCw, UserCheck, UserX, KeyRound, Loader2, X, Check } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { useApp } from '@/context/AppContext'
+import { api } from '@/lib/api'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 interface UserRecord {
   id: string
@@ -40,9 +39,8 @@ export default function Usuarios() {
   const fetchUsers = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/admin/users`)
-      const data = await res.json()
-      setUsers(data.users ?? [])
+      const data = await api.admin.getUsers()
+      setUsers((data.users ?? []) as UserRecord[])
     } catch {
       showToast('Erro ao carregar usuários')
     } finally {
@@ -56,22 +54,13 @@ export default function Usuarios() {
     e.preventDefault()
     setSubmitting(true)
     try {
-      const res = await fetch(`${API_BASE}/api/admin/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName, email: newEmail, password: newPass, role: newRole }),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        showToast('Erro: ' + (err.detail || 'falha ao criar'))
-      } else {
-        showToast('Usuário criado com sucesso')
-        setShowNewModal(false)
-        setNewName(''); setNewEmail(''); setNewPass(''); setNewRole('usuario')
-        fetchUsers()
-      }
-    } catch {
-      showToast('Erro de conexão')
+      await api.admin.createUser({ name: newName, email: newEmail, password: newPass, role: newRole })
+      showToast('Usuário criado com sucesso')
+      setShowNewModal(false)
+      setNewName(''); setNewEmail(''); setNewPass(''); setNewRole('usuario')
+      fetchUsers()
+    } catch (err) {
+      showToast('Erro: ' + (err instanceof Error ? err.message : 'falha ao criar'))
     } finally {
       setSubmitting(false)
     }
@@ -79,11 +68,7 @@ export default function Usuarios() {
 
   async function handleToggle(u: UserRecord) {
     try {
-      await fetch(`${API_BASE}/api/admin/users/${u.id}/toggle`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ disabled: !u.disabled }),
-      })
+      await api.admin.toggleUser(u.id, !u.disabled)
       showToast(u.disabled ? 'Usuário ativado' : 'Usuário desativado')
       fetchUsers()
     } catch {
@@ -96,19 +81,12 @@ export default function Usuarios() {
     if (!resetTarget) return
     setSubmitting(true)
     try {
-      const res = await fetch(`${API_BASE}/api/admin/users/${resetTarget.id}/reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: resetPassword }),
-      })
-      if (!res.ok) showToast('Erro ao redefinir senha')
-      else {
-        showToast('Senha redefinida com sucesso')
-        setResetTarget(null)
-        setResetPassword('')
-      }
+      await api.admin.resetPassword(resetTarget.id, resetPassword)
+      showToast('Senha redefinida com sucesso')
+      setResetTarget(null)
+      setResetPassword('')
     } catch {
-      showToast('Erro de conexão')
+      showToast('Erro ao redefinir senha')
     } finally {
       setSubmitting(false)
     }

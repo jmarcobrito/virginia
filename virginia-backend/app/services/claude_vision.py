@@ -1,6 +1,7 @@
 import anthropic
 import base64
 import json
+import re
 from app.config import settings
 
 client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
@@ -61,4 +62,10 @@ async def extract_metadata(file_path: str, file_format: str) -> dict:
     )
 
     raw = message.content[0].text.strip()
-    return json.loads(raw)
+    raw = re.sub(r'^```(?:json)?\s*', '', raw)
+    raw = re.sub(r'\s*```$', '', raw)
+    raw = raw.strip()
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Claude retornou JSON inválido: {e}\nResposta: {raw[:200]}")

@@ -1,10 +1,27 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.database import supabase
 
 router = APIRouter()
+_bearer = HTTPBearer()
 
 
-@router.get("/users")
+def require_admin(creds: HTTPAuthorizationCredentials = Depends(_bearer)):
+    try:
+        result = supabase.auth.get_user(creds.credentials)
+        user = result.user
+        if not user:
+            raise HTTPException(status_code=401, detail="Não autenticado")
+        meta = getattr(user, "user_metadata", None) or {}
+        if meta.get("role") != "admin":
+            raise HTTPException(status_code=403, detail="Acesso negado")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=401, detail="Token inválido ou expirado")
+
+
+@router.get("/users", dependencies=[Depends(require_admin)])
 def list_users():
     try:
         response = supabase.auth.admin.list_users()
@@ -33,7 +50,7 @@ def list_users():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/users")
+@router.post("/users", dependencies=[Depends(require_admin)])
 def create_user(body: dict):
     try:
         response = supabase.auth.admin.create_user({
@@ -51,7 +68,7 @@ def create_user(body: dict):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.patch("/users/{user_id}/toggle")
+@router.patch("/users/{user_id}/toggle", dependencies=[Depends(require_admin)])
 def toggle_user(user_id: str, body: dict):
     try:
         if body.get("disabled"):
@@ -63,7 +80,7 @@ def toggle_user(user_id: str, body: dict):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/users/{user_id}/reset-password")
+@router.post("/users/{user_id}/reset-password", dependencies=[Depends(require_admin)])
 def reset_password(user_id: str, body: dict):
     try:
         supabase.auth.admin.update_user_by_id(user_id, {"password": body["password"]})

@@ -33,8 +33,10 @@ def update_authorized_sources(body: dict):
 
 @router.get("/{key}")
 def get_setting(key: str):
-    result = supabase.table("settings").select("value").eq("key", key).single().execute()
-    return result.data
+    result = supabase.table("settings").select("value").eq("key", key).execute()
+    if not result.data:
+        return {"value": None}
+    return result.data[0]
 
 
 @router.patch("/{key}")

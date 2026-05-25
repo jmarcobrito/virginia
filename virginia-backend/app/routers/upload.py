@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Form, UploadFile, File
+from fastapi import APIRouter, Form, UploadFile, File, HTTPException
 from app.services import claude_vision, rag_service, audio_service, storage_service
 from app.database import supabase
 import tempfile
@@ -56,12 +56,18 @@ async def upload_document(
             text_for_rag = await audio_service.transcribe_audio(tmp_path)
 
         # 4. Extrair metadados com Claude Vision
-        metadata = await claude_vision.extract_metadata(tmp_path, file_format)
+        try:
+            metadata = await claude_vision.extract_metadata(tmp_path, file_format)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Falha ao extrair metadados: {e}")
 
         # 5. Upload para Supabase Storage
         document_id = str(uuid.uuid4())
         file_path = f"{document_id}/{file.filename}"
-        file_url = await storage_service.upload_file(tmp_path, file_path)
+        try:
+            file_url = await storage_service.upload_file(tmp_path, file_path)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Falha no upload para o storage: {e}")
 
         # 6. Calcular dias para vencer
         days_to_expire = None
