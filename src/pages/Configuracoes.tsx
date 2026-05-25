@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { MessageCircle, Info, User, Bell, Tag, Pencil, Trash2, Check, X, Plus, RefreshCw, Loader2, CheckCircle2, WifiOff, QrCode, PhoneOff, Shield } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 import { Card } from '@/components/ui/Card'
 import { Toggle } from '@/components/ui/Toggle'
 import { useApp } from '@/context/AppContext'
@@ -245,6 +246,7 @@ function QrModal({
 }
 
 export default function Configuracoes() {
+  const { user } = useAuth()
   const {
     whatsappAlertsEnabled,
     setWhatsappAlertsEnabled,
@@ -745,12 +747,19 @@ export default function Configuracoes() {
           </div>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-[#0F6E8C]/15 flex items-center justify-center flex-shrink-0">
-              <span className="text-sm font-semibold text-[#0F6E8C]">MC</span>
+              <span className="text-sm font-semibold text-[#0F6E8C]">
+                {(user?.user_metadata?.full_name || user?.email || 'U')
+                  .split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+              </span>
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-800">Mariana Costa</p>
-              <p className="text-xs text-gray-500">Assistente Administrativo</p>
-              <p className="text-xs text-gray-400 mt-0.5">Grupo Monarca</p>
+              <p className="text-sm font-semibold text-gray-800">
+                {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'}
+              </p>
+              <p className="text-xs text-gray-500">
+                {user?.user_metadata?.role === 'admin' ? 'Administrador' : 'Usuário'}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">{user?.email}</p>
             </div>
           </div>
         </Card>

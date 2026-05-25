@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import documents, search, upload, activity, settings, whatsapp, cheques, payments, contracts
+from app.routers import documents, search, upload, activity, settings, whatsapp, cheques, payments, contracts, admin
 
 app = FastAPI(title="Virginia API", version="3.0.0")
 
@@ -26,6 +26,7 @@ app.include_router(whatsapp.router,   prefix="/api/whatsapp",   tags=["whatsapp"
 app.include_router(cheques.router,    prefix="/api/cheques",    tags=["cheques"])
 app.include_router(payments.router,   prefix="/api/payments",   tags=["payments"])
 app.include_router(contracts.router,  prefix="/api/contracts",  tags=["contracts"])
+app.include_router(admin.router,      prefix="/api/admin",      tags=["admin"])
 
 
 @app.get("/api/health")
