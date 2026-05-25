@@ -1,3 +1,4 @@
+import logging
 import time
 import httpx
 from fastapi import APIRouter, HTTPException
@@ -228,13 +229,14 @@ async def disconnect():
 
     async with httpx.AsyncClient() as client:
         try:
-            await client.delete(
+            r = await client.delete(
                 f"{settings.evolution_api_url}/instance/logout/{active}",
                 headers=_headers(),
                 timeout=5.0,
             )
-        except httpx.RequestError:
-            pass
+            logging.info("Evolution API logout — status: %s body: %s", r.status_code, r.text)
+        except httpx.RequestError as e:
+            logging.warning("Evolution API logout falhou (RequestError): %s", e)
 
     _upsert_setting(ACTIVE_KEY, "")
     return {"success": True}
