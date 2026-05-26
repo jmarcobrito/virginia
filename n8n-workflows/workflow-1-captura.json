@@ -24,7 +24,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        460,
+        680,
         300
       ],
       "parameters": {
@@ -37,7 +37,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        680,
+        900,
         300
       ],
       "parameters": {
@@ -68,21 +68,13 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        900,
+        1120,
         220
       ],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.VIRGINIA_BACKEND_URL + '/api/settings/authorized-sources' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-virginia-webhook-secret",
-              "value": "={{ $env.VIRGINIA_WEBHOOK_SECRET }}"
-            }
-          ]
-        },
+        "url": "={{ $('Configurar workflow').item.json.__config.backendUrl + '/api/settings/authorized-sources?webhook_secret=' + $('Configurar workflow').item.json.__config.webhookSecret }}",
+        "sendHeaders": false,
         "options": {
           "response": {
             "response": {
@@ -98,7 +90,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        1120,
+        1340,
         220
       ],
       "parameters": {
@@ -129,7 +121,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        1340,
+        1560,
         220
       ],
       "parameters": {
@@ -160,18 +152,18 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1560,
+        1780,
         320
       ],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.EVOLUTION_API_URL + '/chat/getBase64FromMediaMessage/' + $('Normalizar mensagem').item.json.instance }}",
+        "url": "={{ $('Configurar workflow').item.json.__config.evolutionApiUrl + '/chat/getBase64FromMediaMessage/' + $('Normalizar mensagem').item.json.instance }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
-              "value": "={{ $env.EVOLUTION_API_KEY }}"
+              "value": "={{ $('Configurar workflow').item.json.__config.evolutionApiKey }}"
             },
             {
               "name": "Content-Type",
@@ -198,11 +190,11 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1780,
+        2000,
         220
       ],
       "parameters": {
-        "jsCode": "const source = $('Normalizar mensagem').item.json;\nconst response = $json ?? {};\nconst candidates = [\n  response.base64,\n  response.data?.base64,\n  response.file?.base64,\n  response.media?.base64,\n  response.response?.base64,\n  response.result?.base64,\n  source.base64FromWebhook,\n];\nconst rawBase64 = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);\n\nif (!rawBase64) {\n  return [{\n    json: {\n      ...source,\n      mediaReady: false,\n      error_reason: response.error?.message || response.message || 'Evolution nao retornou base64 da midia',\n      evolution_response: response,\n    },\n  }];\n}\n\nconst cleanBase64 = rawBase64.replace(/^data:[^;]+;base64,/, '').replace(/\\s/g, '');\nlet buffer;\ntry {\n  buffer = Buffer.from(cleanBase64, 'base64');\n} catch (error) {\n  return [{\n    json: {\n      ...source,\n      mediaReady: false,\n      error_reason: 'Base64 invalido: ' + error.message,\n    },\n  }];\n}\n\nif (!buffer.length) {\n  return [{ json: { ...source, mediaReady: false, error_reason: 'Arquivo vazio apos conversao de base64' } }];\n}\n\nconst mimetype = response.mimetype || response.mimeType || source.mimetype || 'application/octet-stream';\nconst fileName = response.fileName || response.filename || source.fileName || String(source.messageId || Date.now()) + '.bin';\nconst binaryData = await this.helpers.prepareBinaryData(buffer, fileName, mimetype);\n\nreturn [{\n  json: {\n    ...source,\n    mediaReady: true,\n    mimetype,\n    fileName,\n    sizeBytes: buffer.length,\n  },\n  binary: {\n    data: binaryData,\n  },\n}];"
+        "jsCode": "const source = $('Normalizar mensagem').item.json;\nconst response = $json ?? {};\nconst candidates = [\n  typeof response === 'string' ? response : null,\n  response.base64,\n  response.data,\n  response.data?.base64,\n  response.file?.base64,\n  response.media?.base64,\n  response.response?.base64,\n  response.result?.base64,\n  source.base64FromWebhook,\n];\nconst rawBase64 = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);\n\nif (!rawBase64) {\n  return [{\n    json: {\n      ...source,\n      mediaReady: false,\n      error_reason: response.error?.message || response.message || 'Evolution nao retornou base64 da midia',\n      evolution_response: response,\n    },\n  }];\n}\n\nconst dataUriMatch = rawBase64.match(/^data:([^;]+);base64,(.*)$/s);\nconst dataUriMime = dataUriMatch?.[1];\nconst cleanBase64 = (dataUriMatch?.[2] ?? rawBase64).replace(/s/g, '');\nlet buffer;\ntry {\n  buffer = Buffer.from(cleanBase64, 'base64');\n} catch (error) {\n  return [{\n    json: {\n      ...source,\n      mediaReady: false,\n      error_reason: 'Base64 invalido: ' + error.message,\n    },\n  }];\n}\n\nif (!buffer.length) {\n  return [{ json: { ...source, mediaReady: false, error_reason: 'Arquivo vazio apos conversao de base64' } }];\n}\n\nfunction sniff(buffer) {\n  if (buffer.subarray(0, 4).toString('ascii') === '%PDF') return { mimetype: 'application/pdf', ext: '.pdf' };\n  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return { mimetype: 'image/jpeg', ext: '.jpg' };\n  if (buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return { mimetype: 'image/png', ext: '.png' };\n  if (buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WEBP') return { mimetype: 'image/webp', ext: '.webp' };\n  if (buffer.subarray(0, 4).toString('ascii') === 'OggS') return { mimetype: 'audio/ogg', ext: '.ogg' };\n  if (buffer.subarray(0, 3).toString('ascii') === 'ID3' || (buffer[0] === 0xff && [0xfb, 0xf3, 0xf2].includes(buffer[1]))) return { mimetype: 'audio/mpeg', ext: '.mp3' };\n  if (buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WAVE') return { mimetype: 'audio/wav', ext: '.wav' };\n  return { mimetype: null, ext: null };\n}\n\nfunction extensionForMime(mimetype) {\n  return {\n    'application/pdf': '.pdf',\n    'image/jpeg': '.jpg',\n    'image/png': '.png',\n    'image/webp': '.webp',\n    'audio/ogg': '.ogg',\n    'audio/mpeg': '.mp3',\n    'audio/mp3': '.mp3',\n    'audio/mp4': '.m4a',\n    'audio/x-m4a': '.m4a',\n    'audio/wav': '.wav',\n    'video/mp4': '.mp4',\n  }[mimetype] || null;\n}\n\nfunction ensureExtension(fileName, ext) {\n  const name = String(fileName || source.messageId || Date.now());\n  if (!ext) return name.includes('.') ? name : name + '.bin';\n  const currentExt = name.match(/.[a-z0-9]+$/i)?.[0]?.toLowerCase();\n  if (!currentExt || currentExt === '.bin') return name.replace(/.[a-z0-9]+$/i, '') + ext;\n  return name;\n}\n\nconst detected = sniff(buffer);\nconst declaredMime = dataUriMime || response.mimetype || response.mimeType || response.data?.mimetype || source.mimetype || '';\nconst mimetype = (!declaredMime || declaredMime === 'application/octet-stream')\n  ? (detected.mimetype || 'application/octet-stream')\n  : declaredMime;\nconst extension = extensionForMime(mimetype) || detected.ext;\nconst fileName = ensureExtension(response.fileName || response.filename || response.data?.fileName || source.fileName, extension);\nconst binaryData = await this.helpers.prepareBinaryData(buffer, fileName, mimetype);\n\nreturn [{\n  json: {\n    ...source,\n    mediaReady: true,\n    mimetype,\n    fileName,\n    sizeBytes: buffer.length,\n  },\n  binary: {\n    data: binaryData,\n  },\n}];"
       }
     },
     {
@@ -211,7 +203,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2000,
+        2220,
         220
       ],
       "parameters": {
@@ -242,21 +234,13 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2220,
+        2440,
         140
       ],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.VIRGINIA_BACKEND_URL + '/api/upload/' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-virginia-webhook-secret",
-              "value": "={{ $env.VIRGINIA_WEBHOOK_SECRET }}"
-            }
-          ]
-        },
+        "url": "={{ $('Configurar workflow').item.json.__config.backendUrl + '/api/upload/?webhook_secret=' + $('Configurar workflow').item.json.__config.webhookSecret }}",
+        "sendHeaders": false,
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
@@ -286,7 +270,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2440,
+        2660,
         140
       ],
       "parameters": {
@@ -312,22 +296,22 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2660,
+        2880,
         320
       ],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SUPABASE_URL + '/rest/v1/upload_queue' }}",
+        "url": "={{ $('Configurar workflow').item.json.__config.supabaseUrl + '/rest/v1/upload_queue' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
-              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+              "value": "={{ $('Configurar workflow').item.json.__config.supabaseServiceKey }}"
             },
             {
               "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_KEY }}"
+              "value": "={{ 'Bearer ' + $('Configurar workflow').item.json.__config.supabaseServiceKey }}"
             },
             {
               "name": "Content-Type",
@@ -335,7 +319,7 @@
             },
             {
               "name": "Prefer",
-              "value": "return=minimal"
+              "value": "return=representation"
             }
           ]
         },
@@ -351,8 +335,8 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        2660,
-        80
+        2880,
+        60
       ],
       "parameters": {}
     },
@@ -377,6 +361,19 @@
         460
       ],
       "parameters": {}
+    },
+    {
+      "id": "a1b2c3d4-0000-0000-0000-000000000000",
+      "name": "Configurar workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const config = {\n  backendUrl: 'https://virginia-backend-virginia-backend.5ivdfc.easypanel.host',\n  webhookSecret: 'COLE_AQUI_VIRGINIA_WEBHOOK_SECRET',\n  evolutionApiUrl: 'https://evolution-api-evolution-api.5ivdfc.easypanel.host',\n  evolutionApiKey: 'COLE_AQUI_EVOLUTION_API_KEY',\n  supabaseUrl: 'https://bbgjnnxstkycthuzjgsm.supabase.co',\n  supabaseServiceKey: 'COLE_AQUI_SUPABASE_SERVICE_KEY',\n};\n\nreturn $input.all().map((item) => ({\n  json: {\n    ...item.json,\n    __config: config,\n  },\n  binary: item.binary,\n}));"
+      }
     }
   ],
   "connections": {
@@ -384,7 +381,7 @@
       "main": [
         [
           {
-            "node": "Normalizar mensagem",
+            "node": "Configurar workflow",
             "type": "main",
             "index": 0
           }
@@ -530,6 +527,17 @@
         [
           {
             "node": "Registrar na fila de retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configurar workflow": {
+      "main": [
+        [
+          {
+            "node": "Normalizar mensagem",
             "type": "main",
             "index": 0
           }
