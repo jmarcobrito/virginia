@@ -285,6 +285,9 @@ export default function Configuracoes() {
     try {
       const res = await api.whatsapp.status()
       setWaState({ status: res.status as WaStatus, instance: res.instance, phone: res.phone })
+      if (res.status === 'connected' && !statusPollRef.current) {
+        statusPollRef.current = setInterval(fetchWaStatus, 15000)
+      }
     } catch {
       setWaState((prev) => ({ ...prev, status: 'unreachable' }))
     }
@@ -292,7 +295,6 @@ export default function Configuracoes() {
 
   useEffect(() => {
     fetchWaStatus()
-    statusPollRef.current = setInterval(fetchWaStatus, 15000)
     return () => {
       if (statusPollRef.current) clearInterval(statusPollRef.current)
     }
@@ -365,6 +367,9 @@ export default function Configuracoes() {
     setShowQrModal(false)
     setWaState({ status: 'connected', instance: null, phone })
     showToast('WhatsApp conectado com sucesso')
+    if (!statusPollRef.current) {
+      statusPollRef.current = setInterval(fetchWaStatus, 15000)
+    }
     fetchWaStatus()
   }
 

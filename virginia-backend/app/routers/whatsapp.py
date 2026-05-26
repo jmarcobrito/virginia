@@ -1,5 +1,4 @@
 import logging
-import time
 import httpx
 from fastapi import APIRouter, HTTPException
 
@@ -9,7 +8,6 @@ from app.database import supabase
 router = APIRouter()
 
 ACTIVE_KEY = "whatsapp_active_instance"
-PENDING_KEY = "whatsapp_pending_instance"
 
 
 def _headers():
@@ -60,25 +58,6 @@ async def _phone_from_instance(client: httpx.AsyncClient, instance: str) -> str 
     return None
 
 
-async def _delete_instance(client: httpx.AsyncClient, instance: str):
-    try:
-        await client.delete(
-            f"{settings.evolution_api_url}/instance/delete/{instance}",
-            headers=_headers(),
-            timeout=5.0,
-        )
-    except Exception:
-        pass
-
-
-async def _promote_pending_to_active(client: httpx.AsyncClient, new_instance: str):
-    old = _get_setting(ACTIVE_KEY)
-    _upsert_setting(ACTIVE_KEY, new_instance)
-    _upsert_setting(PENDING_KEY, "")
-    if old and old != new_instance:
-        await _delete_instance(client, old)
-
-
 @router.get("/status")
 async def get_status():
     active = _get_setting(ACTIVE_KEY)
@@ -98,81 +77,11 @@ async def get_status():
             return {"status": "unreachable", "instance": active, "phone": None}
 
 
-@router.post("/connect")
-async def connect_new():
-    """Cria nova instância na Evolution API e retorna QR code como base64."""
-    new_instance = f"virginia-{int(time.time())}"
-
-    async with httpx.AsyncClient() as client:
-        try:
-            r = await client.post(
-                f"{settings.evolution_api_url}/instance/create",
-                headers=_headers(),
-                json={
-                    "instanceName": new_instance,
-                    "integration": "WHATSAPP-BAILEYS",
-                    "qrcode": True,
-                    "webhook": {
-                        "url": f"{settings.n8n_url}/webhook/whatsapp-incoming",
-                        "byEvents": False,
-                        "base64": False,
-                        "events": ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
-                    },
-                },
-                timeout=15.0,
-            )
-        except httpx.RequestError:
-            raise HTTPException(503, "Evolution API não está acessível")
-
-        if r.status_code not in (200, 201):
-            raise HTTPException(502, f"Evolution API: {r.text}")
-
-        qr_r = await client.get(
-            f"{settings.evolution_api_url}/instance/connect/{new_instance}",
-            headers=_headers(),
-            timeout=10.0,
-        )
-        qr_data = qr_r.json()
-        qr = qr_data.get("base64") or qr_data.get("qrcode", {}).get("base64")
-
-    _upsert_setting(PENDING_KEY, new_instance)
-    return {"instance": new_instance, "qr": qr}
-
-
-@router.get("/qr/{instance}")
-async def refresh_qr(instance: str):
-    """
-    Retorna QR atualizado de uma instância pendente.
-    Se a instância já conectou, promove-a a ativa e retorna status=connected.
-    """
-    async with httpx.AsyncClient() as client:
-        try:
-            state = await _connection_state(client, instance)
-
-            if state == "open":
-                await _promote_pending_to_active(client, instance)
-                phone = await _phone_from_instance(client, instance)
-                return {"status": "connected", "qr": None, "phone": phone}
-
-            qr_r = await client.get(
-                f"{settings.evolution_api_url}/instance/connect/{instance}",
-                headers=_headers(),
-                timeout=10.0,
-            )
-            qr_data = qr_r.json()
-            qr = qr_data.get("base64") or qr_data.get("qrcode", {}).get("base64")
-            return {"status": "pending", "qr": qr, "phone": None}
-
-        except httpx.RequestError:
-            raise HTTPException(503, "Evolution API não está acessível")
-
-
 @router.get("/qrcode")
 async def get_qrcode():
     instance = settings.evolution_instance_name
     async with httpx.AsyncClient() as client:
         try:
-            # Verifica se a instância já existe
             check = await client.get(
                 f"{settings.evolution_api_url}/instance/connectionState/{instance}",
                 headers=_headers(),
@@ -181,7 +90,6 @@ async def get_qrcode():
         except httpx.RequestError:
             raise HTTPException(503, "Evolution API não está acessível")
 
-        # Cria a instância se não existir (404 = não encontrada)
         if check.status_code == 404:
             try:
                 create = await client.post(
@@ -205,6 +113,8 @@ async def get_qrcode():
 
             if create.status_code not in (200, 201):
                 raise HTTPException(502, f"Evolution API: {create.text}")
+
+        _upsert_setting(ACTIVE_KEY, instance)
 
         try:
             r = await client.get(
@@ -230,7 +140,6 @@ async def disconnect():
         return {"success": True}
 
     async with httpx.AsyncClient() as client:
-        # 1. Chamar logout na Evolution API
         try:
             r = await client.delete(
                 f"{settings.evolution_api_url}/instance/logout/{active}",
@@ -238,36 +147,8 @@ async def disconnect():
                 timeout=5.0,
             )
             logging.info("Evolution API logout — status: %s body: %s", r.status_code, r.text)
-        except httpx.RequestError as e:
-            logging.warning("Evolution API logout falhou (RequestError): %s", e)
-            raise HTTPException(status_code=503, detail=f"Evolution API não acessível: {e}")
-
-        # 2. Verificar se Evolution API aceitou o logout
-        if r.status_code not in (200, 204):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Evolution API recusou logout (status {r.status_code}): {r.text}",
-            )
-
-        # 3. Verificar se a conexão foi de fato encerrada
-        state = await _connection_state(client, active)
-        logging.info("Estado após logout: %s (instância: %s)", state, active)
-        if state == "open":
-            raise HTTPException(
-                status_code=400,
-                detail="Logout enviado mas WhatsApp ainda está conectado. Tente novamente.",
-            )
-
-        # 4. Deletar a instância para liberar recursos na Evolution API
-        try:
-            del_r = await client.delete(
-                f"{settings.evolution_api_url}/instance/delete/{active}",
-                headers=_headers(),
-                timeout=5.0,
-            )
-            logging.info("Evolution API delete instance — status: %s body: %s", del_r.status_code, del_r.text)
         except Exception as e:
-            logging.warning("Evolution API delete instance falhou (não crítico): %s", e)
+            logging.warning("Evolution API logout falhou: %s", e)
 
     _upsert_setting(ACTIVE_KEY, "")
     return {"success": True}

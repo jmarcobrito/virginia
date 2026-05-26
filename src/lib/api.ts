@@ -106,12 +106,6 @@ export const api = {
     status: (): Promise<{ status: string; instance: string | null; phone: string | null }> =>
       authFetch(`${API_BASE}/api/whatsapp/status`).then((r) => r.json()),
 
-    connect: (): Promise<{ instance: string; qr: string }> =>
-      authFetch(`${API_BASE}/api/whatsapp/connect`, { method: 'POST' }).then((r) => r.json()),
-
-    qr: (instance: string): Promise<{ status: string; qr: string | null; phone: string | null }> =>
-      authFetch(`${API_BASE}/api/whatsapp/qr/${instance}`).then((r) => r.json()),
-
     disconnect: (): Promise<{ success: boolean }> =>
       authFetch(`${API_BASE}/api/whatsapp/disconnect`, { method: 'DELETE' }).then((r) => r.json()),
   },
