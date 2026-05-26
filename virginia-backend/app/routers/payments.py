@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from typing import Optional
 from datetime import datetime, timezone
 from app.database import supabase
+from app.models.payment import PaymentCreate, PaymentStatus
 
 router = APIRouter()
 
@@ -29,17 +30,16 @@ def list_payments(
 
 
 @router.post("/")
-def create_payment(body: dict):
-    status = body.get("status", "pendente")
+def create_payment(body: PaymentCreate):
     data = {
-        "valor": body.get("valor"),
-        "beneficiario": body.get("beneficiario"),
-        "vencimento": body.get("vencimento") or None,
-        "codigo_barras": body.get("codigo_barras") or None,
-        "status": status,
-        "origin": body.get("origin", "manual"),
-        "document_id": body.get("document_id") or None,
-        "paid_at": datetime.now(timezone.utc).isoformat() if status == "pago" else None,
+        "valor": body.valor,
+        "beneficiario": body.beneficiario,
+        "vencimento": body.vencimento,
+        "codigo_barras": body.codigo_barras,
+        "status": body.status.value,
+        "origin": body.origin,
+        "document_id": body.document_id,
+        "paid_at": datetime.now(timezone.utc).isoformat() if body.status == PaymentStatus.pago else None,
     }
     result = supabase.table("payments").insert(data).execute()
     return {"success": True, "payment": result.data[0] if result.data else data}

@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from typing import Optional
 from datetime import datetime, timedelta
 from app.database import supabase
+from app.models.cheque import ChequeCreate
 
 router = APIRouter()
 
@@ -33,16 +34,16 @@ def list_cheques(
 
 
 @router.post("/")
-def create_cheque(body: dict):
+def create_cheque(body: ChequeCreate):
     data = {
-        "valor": body.get("valor"),
-        "beneficiario": body.get("beneficiario"),
-        "banco": body.get("banco") or None,
-        "numero": body.get("numero") or None,
-        "data_emissao": body.get("data_emissao") or None,
-        "data_compensacao": body.get("data_compensacao") or None,
-        "status": body.get("status", "emitido"),
-        "document_id": body.get("document_id") or None,
+        "valor": body.valor,
+        "beneficiario": body.beneficiario,
+        "banco": body.banco,
+        "numero": body.numero,
+        "data_emissao": body.data_emissao,
+        "data_compensacao": body.data_compensacao,
+        "status": body.status.value,
+        "document_id": body.document_id,
     }
     result = supabase.table("cheques").insert(data).execute()
     return {"success": True, "cheque": result.data[0] if result.data else data}

@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from app.database import supabase
+from app.models.document import DocumentStatusUpdate, DocumentUpdate
 from typing import Optional
 from datetime import datetime, timedelta
 
@@ -62,13 +63,7 @@ def get_stats():
 
     return {
         "total": len(all_docs),
-        "pending": len(
-            [
-                d
-                for d in all_docs
-                if d["status"] in ["pendente_assinatura", "em_revisao"]
-            ]
-        ),
+        "pending": len([d for d in all_docs if d["status"] == "pendente"]),
         "this_week": len([d for d in all_docs if d["created_at"] >= week_ago]),
         "expiring_soon": len(
             [
@@ -81,8 +76,8 @@ def get_stats():
 
 
 @router.patch("/{document_id}/status")
-def update_status(document_id: str, body: dict):
-    new_status = body.get("status")
+def update_status(document_id: str, body: DocumentStatusUpdate):
+    new_status = body.status.value
     supabase.table("documents").update({"status": new_status}).eq(
         "id", document_id
     ).execute()
@@ -97,8 +92,9 @@ def update_status(document_id: str, body: dict):
 
 
 @router.patch("/{document_id}")
-def update_document(document_id: str, body: dict):
-    allowed_fields = ["status", "origin", "whatsapp_message_id"]
-    update_data = {k: v for k, v in body.items() if k in allowed_fields}
+def update_document(document_id: str, body: DocumentUpdate):
+    update_data = body.model_dump(exclude_none=True)
+    if "status" in update_data:
+        update_data["status"] = body.status.value
     supabase.table("documents").update(update_data).eq("id", document_id).execute()
     return {"success": True}

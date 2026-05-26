@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from app.database import supabase
+from app.models.contract import ContractStatusUpdate
 
 router = APIRouter()
 
@@ -18,6 +19,14 @@ def list_contracts():
     contracts.sort(key=lambda c: (c.get("expires_at") is None, c.get("expires_at") or ""))
 
     return {"contracts": contracts, "total": len(contracts)}
+
+
+@router.patch("/{contract_id}/status")
+def update_contract_status(contract_id: str, body: ContractStatusUpdate):
+    supabase.table("documents").update({"status": body.status.value}).eq(
+        "id", contract_id
+    ).execute()
+    return {"success": True}
 
 
 @router.get("/{contract_id}/addendums/")

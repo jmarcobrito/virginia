@@ -1,12 +1,19 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date
+from enum import Enum
+
+
+class DocumentStatus(str, Enum):
+    pendente = "pendente"
+    processado = "processado"
+    arquivado = "arquivado"
 
 
 class DocumentCreate(BaseModel):
     name: str
     type: str
-    status: str = "recebido"
+    status: DocumentStatus = DocumentStatus.pendente
     origin: str = "manual"
     format: Optional[str] = None
     size_bytes: Optional[int] = None
@@ -22,4 +29,10 @@ class DocumentCreate(BaseModel):
 
 
 class DocumentStatusUpdate(BaseModel):
-    status: str
+    status: DocumentStatus
+
+
+class DocumentUpdate(BaseModel):
+    status: Optional[DocumentStatus] = None
+    origin: Optional[str] = None
+    whatsapp_message_id: Optional[str] = None
