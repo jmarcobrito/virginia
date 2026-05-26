@@ -1,4 +1,4 @@
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.config import settings
@@ -53,6 +53,7 @@ def require_admin(user=Depends(require_user)):
 
 def require_webhook_secret(
     x_virginia_webhook_secret: str | None = Header(default=None),
+    webhook_secret: str | None = Query(default=None),
 ):
     expected = settings.virginia_webhook_secret
     if not expected:
@@ -60,7 +61,7 @@ def require_webhook_secret(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Webhook secret nao configurado",
         )
-    if x_virginia_webhook_secret != expected:
+    if expected not in (x_virginia_webhook_secret, webhook_secret):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Webhook nao autorizado",
@@ -70,8 +71,9 @@ def require_webhook_secret(
 def require_user_or_webhook(
     creds: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     x_virginia_webhook_secret: str | None = Header(default=None),
+    webhook_secret: str | None = Query(default=None),
 ):
     expected = settings.virginia_webhook_secret
-    if expected and x_virginia_webhook_secret == expected:
+    if expected and expected in (x_virginia_webhook_secret, webhook_secret):
         return {"type": "webhook"}
     return _user_from_credentials(creds)
