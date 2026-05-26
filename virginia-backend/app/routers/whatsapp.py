@@ -81,7 +81,9 @@ async def _promote_pending_to_active(client: httpx.AsyncClient, new_instance: st
 
 @router.get("/status")
 async def get_status():
-    active = _get_setting(ACTIVE_KEY) or settings.evolution_instance_name
+    active = _get_setting(ACTIVE_KEY)
+    if not active:
+        return {"status": "disconnected", "instance": None, "phone": None}
 
     async with httpx.AsyncClient() as client:
         try:

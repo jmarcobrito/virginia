@@ -348,6 +348,10 @@ export default function Configuracoes() {
     setIsDisconnecting(true)
     try {
       await api.whatsapp.disconnect()
+      if (statusPollRef.current) {
+        clearInterval(statusPollRef.current)
+        statusPollRef.current = null
+      }
       setWaState({ status: 'disconnected', instance: null, phone: null })
       showToast('WhatsApp desconectado')
     } catch {
