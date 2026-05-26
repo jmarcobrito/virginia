@@ -2,7 +2,18 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.auth import require_user
 from app.config import settings
-from app.routers import documents, search, upload, activity, settings, whatsapp, cheques, payments, contracts, admin
+from app.routers import (
+    activity,
+    admin,
+    cheques,
+    contracts,
+    documents,
+    payments,
+    search,
+    settings as settings_router,
+    upload,
+    whatsapp,
+)
 
 app = FastAPI(title="Virginia API", version="3.0.0")
 
@@ -23,7 +34,7 @@ app.include_router(documents.router, prefix="/api/documents", tags=["documents"]
 app.include_router(search.router, prefix="/api/search", tags=["search"], dependencies=protected)
 app.include_router(upload.router, prefix="/api/upload", tags=["upload"])
 app.include_router(activity.router, prefix="/api/activity", tags=["activity"])
-app.include_router(settings.router, prefix="/api/settings", tags=["settings"])
+app.include_router(settings_router.router, prefix="/api/settings", tags=["settings"])
 app.include_router(whatsapp.router,   prefix="/api/whatsapp",   tags=["whatsapp"])
 app.include_router(cheques.router,    prefix="/api/cheques",    tags=["cheques"], dependencies=protected)
 app.include_router(payments.router,   prefix="/api/payments",   tags=["payments"], dependencies=protected)
