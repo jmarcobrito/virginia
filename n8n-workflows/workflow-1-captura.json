@@ -44,7 +44,7 @@
       "position": [680, 220],
       "parameters": {
         "method": "GET",
-        "url": "={{ https://virginia-backend-virginia-backend.5ivdfc.easypanel.host }}/api/settings/authorized-sources",
+        "url": "https://virginia-backend-virginia-backend.5ivdfc.easypanel.host/api/settings/authorized-sources",
         "options": { "response": { "response": { "responseFormat": "json" } } }
       }
     },
@@ -85,7 +85,7 @@
       "position": [1120, 220],
       "parameters": {
         "method": "GET",
-        "url": "={{ https://virginia-backend-virginia-backend.5ivdfc.easypanel.host }}/api/whatsapp/status",
+        "url": "https://virginia-backend-virginia-backend.5ivdfc.easypanel.host/api/whatsapp/status",
         "options": { "response": { "response": { "responseFormat": "json" } } }
       }
     },
@@ -97,10 +97,10 @@
       "position": [1340, 220],
       "parameters": {
         "method": "GET",
-        "url": "={{ https://evolution-api-evolution-api.5ivdfc.easypanel.host }}/message/download/{{ $('WhatsApp Incoming').item.json.body.instance }}/{{ $('WhatsApp Incoming').item.json.body.data.key.id }}",
+        "url": "=https://evolution-api-evolution-api.5ivdfc.easypanel.host/message/download/{{ $('WhatsApp Incoming').item.json.body.instance }}/{{ $('WhatsApp Incoming').item.json.body.data.key.id }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "apikey", "value": "={{ B60320B7A22B-4E3B-A694-AB8F3BE1DBEC }}" }]
+          "parameters": [{ "name": "apikey", "value": "B60320B7A22B-4E3B-A694-AB8F3BE1DBEC" }]
         },
         "options": { "response": { "response": { "responseFormat": "file" } } }
       }
@@ -150,7 +150,7 @@
       "position": [1780, 120],
       "parameters": {
         "method": "POST",
-        "url": "={{ https://virginia-backend-virginia-backend.5ivdfc.easypanel.host }}/api/upload/",
+        "url": "https://virginia-backend-virginia-backend.5ivdfc.easypanel.host/api/upload/",
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
@@ -171,7 +171,7 @@
       "position": [1780, 260],
       "parameters": {
         "method": "POST",
-        "url": "={{ https://virginia-backend-virginia-backend.5ivdfc.easypanel.host }}/api/upload/",
+        "url": "https://virginia-backend-virginia-backend.5ivdfc.easypanel.host/api/upload/",
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
@@ -192,7 +192,7 @@
       "position": [1780, 400],
       "parameters": {
         "method": "POST",
-        "url": "={{ https://virginia-backend-virginia-backend.5ivdfc.easypanel.host }}/api/upload/",
+        "url": "https://virginia-backend-virginia-backend.5ivdfc.easypanel.host/api/upload/",
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
@@ -233,12 +233,12 @@
       "position": [2220, 360],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/upload_queue",
+        "url": "https://bbgjnnxstkycthuzjgsm.supabase.co/rest/v1/upload_queue",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiZ2pubnhzdGt5Y3RodXpqZ3NtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTM1MDAyOSwiZXhwIjoyMDk0OTI2MDI5fQ.22OhZZWoQq0Mw9nAyTL4E5KT5StOrPd2lzH-JKRe_68" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiZ2pubnhzdGt5Y3RodXpqZ3NtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTM1MDAyOSwiZXhwIjoyMDk0OTI2MDI5fQ.22OhZZWoQq0Mw9nAyTL4E5KT5StOrPd2lzH-JKRe_68" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=minimal" }
           ]
