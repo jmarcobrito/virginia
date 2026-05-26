@@ -5,7 +5,11 @@ import os
 import tempfile
 import uuid
 
+import logging
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+
+logger = logging.getLogger(__name__)
 
 from app.auth import require_user_or_webhook
 from app.config import settings
@@ -210,9 +214,10 @@ async def upload_document(
                 text_content=text_for_rag,
             )
         except Exception as e:
+            logger.error("claude_vision falhou para %s (%s bytes): %s: %s", filename, len(content), type(e).__name__, e)
             raise HTTPException(
                 status_code=502,
-                detail=f"Falha ao extrair metadados: {e}",
+                detail=f"Falha ao extrair metadados: {type(e).__name__}: {e}",
             )
 
         document_id = str(uuid.uuid4())
@@ -220,9 +225,10 @@ async def upload_document(
         try:
             file_url = await storage_service.upload_file(tmp_path, file_path, media_type)
         except Exception as e:
+            logger.error("storage falhou para %s: %s: %s", filename, type(e).__name__, e)
             raise HTTPException(
                 status_code=502,
-                detail=f"Falha no upload para o storage: {e}",
+                detail=f"Falha no upload para o storage: {type(e).__name__}: {e}",
             )
 
         expires_at = metadata.get("expires_at")
