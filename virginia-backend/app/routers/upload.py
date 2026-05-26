@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional
 import os
 import tempfile
+import unicodedata
 import uuid
 
 import logging
@@ -76,6 +77,17 @@ EXTENSION_BY_MIME = {
 def _safe_filename(filename: str | None) -> str:
     name = Path(filename or "arquivo.bin").name
     return name or "arquivo.bin"
+
+
+def _safe_storage_name(filename: str) -> str:
+    """ASCII-safe filename for Supabase Storage keys (rejects non-ASCII chars)."""
+    normalized = unicodedata.normalize("NFKD", filename)
+    ascii_name = normalized.encode("ascii", "ignore").decode("ascii")
+    ascii_name = ascii_name.replace(" ", "_").replace(":", "_")
+    safe = "".join(c for c in ascii_name if c.isalnum() or c in ".-_")
+    stem = Path(safe).stem or "arquivo"
+    ext = Path(safe).suffix or Path(filename).suffix.lower() or ".bin"
+    return f"{stem}{ext}"
 
 
 def _clean_content_type(content_type: str | None) -> str | None:
@@ -221,7 +233,8 @@ async def upload_document(
             )
 
         document_id = str(uuid.uuid4())
-        file_path = f"{document_id}/{filename}"
+        storage_name = _safe_storage_name(filename)
+        file_path = f"{document_id}/{storage_name}"
         try:
             file_url = await storage_service.upload_file(tmp_path, file_path, media_type)
         except Exception as e:
