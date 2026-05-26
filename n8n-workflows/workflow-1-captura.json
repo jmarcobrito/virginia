@@ -27,7 +27,7 @@
           "conditions": [
             {
               "id": "cond-001",
-              "leftValue": "={{ $json.data.message.mediaUrl !== undefined || $json.data.message.hasMedia === true }}",
+              "leftValue": "={{ $json.body.data.messageType !== \"conversation\" && $json.body.data.messageType !== \"extendedTextMessage\" }}",
               "rightValue": true,
               "operator": { "type": "boolean", "operation": "true" }
             }
@@ -60,7 +60,7 @@
           "conditions": [
             {
               "id": "cond-auth",
-              "leftValue": "={{ $('Buscar fontes autorizadas').item.json.numbers.includes($('WhatsApp Incoming').item.json.data.key.remoteJid.replace('@s.whatsapp.net', '')) || $('Buscar fontes autorizadas').item.json.groups.some(g => $('WhatsApp Incoming').item.json.data.key.remoteJid.includes(g)) }}",
+              "leftValue": "={{ $('Buscar fontes autorizadas').item.json.numbers.includes($('WhatsApp Incoming').item.json.body.data.key.remoteJid.replace('@s.whatsapp.net', '')) || $('Buscar fontes autorizadas').item.json.groups.some(g => $('WhatsApp Incoming').item.json.body.data.key.remoteJid.includes(g)) }}",
               "rightValue": true,
               "operator": { "type": "boolean", "operation": "true" }
             }
@@ -97,7 +97,7 @@
       "position": [1340, 220],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.EVOLUTION_API_URL }}/message/download/{{ $('WhatsApp Incoming').item.json.instance }}/{{ $('WhatsApp Incoming').item.json.data.key.id }}",
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/download/{{ $('WhatsApp Incoming').item.json.body.instance }}/{{ $('WhatsApp Incoming').item.json.body.data.key.id }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [{ "name": "apikey", "value": "={{ $env.EVOLUTION_API_KEY }}" }]
@@ -118,21 +118,21 @@
           "rules": [
             {
               "conditions": {
-                "conditions": [{ "leftValue": "={{ $('WhatsApp Incoming').item.json.data.message.mimetype }}", "rightValue": "application/pdf", "operator": { "type": "string", "operation": "startsWith" } }],
+                "conditions": [{ "leftValue": "={{ $('WhatsApp Incoming').item.json.body.data.messageType }}", "rightValue": "documentMessage", "operator": { "type": "string", "operation": "equals" } }],
                 "combinator": "and"
               },
               "output": 0
             },
             {
               "conditions": {
-                "conditions": [{ "leftValue": "={{ $('WhatsApp Incoming').item.json.data.message.mimetype }}", "rightValue": "image/", "operator": { "type": "string", "operation": "startsWith" } }],
+                "conditions": [{ "leftValue": "={{ $('WhatsApp Incoming').item.json.body.data.messageType }}", "rightValue": "imageMessage", "operator": { "type": "string", "operation": "equals" } }],
                 "combinator": "and"
               },
               "output": 1
             },
             {
               "conditions": {
-                "conditions": [{ "leftValue": "={{ $('WhatsApp Incoming').item.json.data.message.mimetype }}", "rightValue": "audio/", "operator": { "type": "string", "operation": "startsWith" } }],
+                "conditions": [{ "leftValue": "={{ $('WhatsApp Incoming').item.json.body.data.messageType }}", "rightValue": "audioMessage", "operator": { "type": "string", "operation": "equals" } }],
                 "combinator": "and"
               },
               "output": 2
@@ -157,7 +157,7 @@
           "parameters": [
             { "parameterType": "formBinaryData", "name": "file", "inputDataFieldName": "data" },
             { "name": "origin", "value": "whatsapp" },
-            { "name": "whatsapp_message_id", "value": "={{ $('WhatsApp Incoming').item.json.data.key.id }}" }
+            { "name": "whatsapp_message_id", "value": "={{ $('WhatsApp Incoming').item.json.body.data.key.id }}" }
           ]
         },
         "options": {}
@@ -178,7 +178,7 @@
           "parameters": [
             { "parameterType": "formBinaryData", "name": "file", "inputDataFieldName": "data" },
             { "name": "origin", "value": "whatsapp" },
-            { "name": "whatsapp_message_id", "value": "={{ $('WhatsApp Incoming').item.json.data.key.id }}" }
+            { "name": "whatsapp_message_id", "value": "={{ $('WhatsApp Incoming').item.json.body.data.key.id }}" }
           ]
         },
         "options": {}
@@ -199,7 +199,7 @@
           "parameters": [
             { "parameterType": "formBinaryData", "name": "file", "inputDataFieldName": "data" },
             { "name": "origin", "value": "whatsapp" },
-            { "name": "whatsapp_message_id", "value": "={{ $('WhatsApp Incoming').item.json.data.key.id }}" }
+            { "name": "whatsapp_message_id", "value": "={{ $('WhatsApp Incoming').item.json.body.data.key.id }}" }
           ]
         },
         "options": {}
@@ -245,7 +245,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"whatsapp_message_id\": \"{{ $('WhatsApp Incoming').item.json.data.key.id }}\",\n  \"whatsapp_instance\": \"{{ $('WhatsApp Incoming').item.json.instance }}\",\n  \"error_reason\": \"Upload falhou: {{ $json.detail || 'erro desconhecido' }}\"\n}",
+        "jsonBody": "={\n  \"whatsapp_message_id\": \"{{ $('WhatsApp Incoming').item.json.body.data.key.id }}\",\n  \"whatsapp_instance\": \"{{ $('WhatsApp Incoming').item.json.body.instance }}\",\n  \"error_reason\": \"Upload falhou: {{ $json.detail || 'erro desconhecido' }}\"\n}",
         "options": {}
       }
     },
