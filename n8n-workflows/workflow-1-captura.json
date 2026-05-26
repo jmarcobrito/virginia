@@ -44,7 +44,7 @@
       "position": [680, 220],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.VIRGINIA_BACKEND_URL }}/api/settings/authorized-sources",
+        "url": "={{ https://virginia-backend-virginia-backend.5ivdfc.easypanel.host }}/api/settings/authorized-sources",
         "options": { "response": { "response": { "responseFormat": "json" } } }
       }
     },
@@ -85,7 +85,7 @@
       "position": [1120, 220],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.VIRGINIA_BACKEND_URL }}/api/whatsapp/status",
+        "url": "={{ https://virginia-backend-virginia-backend.5ivdfc.easypanel.host }}/api/whatsapp/status",
         "options": { "response": { "response": { "responseFormat": "json" } } }
       }
     },
@@ -97,10 +97,10 @@
       "position": [1340, 220],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.EVOLUTION_API_URL }}/message/download/{{ $('WhatsApp Incoming').item.json.body.instance }}/{{ $('WhatsApp Incoming').item.json.body.data.key.id }}",
+        "url": "={{ https://evolution-api-evolution-api.5ivdfc.easypanel.host }}/message/download/{{ $('WhatsApp Incoming').item.json.body.instance }}/{{ $('WhatsApp Incoming').item.json.body.data.key.id }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "apikey", "value": "={{ $env.EVOLUTION_API_KEY }}" }]
+          "parameters": [{ "name": "apikey", "value": "={{ B60320B7A22B-4E3B-A694-AB8F3BE1DBEC }}" }]
         },
         "options": { "response": { "response": { "responseFormat": "file" } } }
       }
@@ -150,7 +150,7 @@
       "position": [1780, 120],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.VIRGINIA_BACKEND_URL }}/api/upload/",
+        "url": "={{ https://virginia-backend-virginia-backend.5ivdfc.easypanel.host }}/api/upload/",
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
@@ -171,7 +171,7 @@
       "position": [1780, 260],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.VIRGINIA_BACKEND_URL }}/api/upload/",
+        "url": "={{ https://virginia-backend-virginia-backend.5ivdfc.easypanel.host }}/api/upload/",
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
@@ -192,7 +192,7 @@
       "position": [1780, 400],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.VIRGINIA_BACKEND_URL }}/api/upload/",
+        "url": "={{ https://virginia-backend-virginia-backend.5ivdfc.easypanel.host }}/api/upload/",
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
