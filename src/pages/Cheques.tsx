@@ -7,7 +7,7 @@ import { Modal } from '@/components/ui/Modal'
 import { formatDate, cn } from '@/lib/utils'
 
 const STATUS_CONFIG: Record<Cheque['status'], { label: string; bg: string; text: string; dot: string }> = {
-  emitido:    { label: 'Emitido',    bg: 'bg-blue-50',    text: 'text-blue-600',    dot: 'bg-blue-500' },
+  pendente:   { label: 'Emitido',    bg: 'bg-blue-50',    text: 'text-blue-600',    dot: 'bg-blue-500' },
   compensado: { label: 'Compensado', bg: 'bg-emerald-50', text: 'text-emerald-600', dot: 'bg-emerald-500' },
   devolvido:  { label: 'Devolvido',  bg: 'bg-red-50',     text: 'text-red-600',     dot: 'bg-red-500' },
 }
@@ -22,7 +22,7 @@ const EMPTY_FORM = {
   numero: '',
   data_emissao: '',
   data_compensacao: '',
-  status: 'emitido',
+  status: 'pendente',
 }
 
 export default function Cheques() {
@@ -100,7 +100,7 @@ export default function Cheques() {
           className="text-sm border border-black/[0.08] rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#0F6E8C]/40"
         >
           <option value="Todos">Todos os status</option>
-          <option value="emitido">Emitido</option>
+          <option value="pendente">Emitido</option>
           <option value="compensado">Compensado</option>
           <option value="devolvido">Devolvido</option>
         </select>
@@ -207,7 +207,7 @@ export default function Cheques() {
               onChange={set('status')}
               className="w-full border border-black/[0.08] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#0F6E8C]/40"
             >
-              <option value="emitido">Emitido</option>
+              <option value="pendente">Emitido</option>
               <option value="compensado">Compensado</option>
               <option value="devolvido">Devolvido</option>
             </select>

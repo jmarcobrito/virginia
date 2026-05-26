@@ -766,7 +766,7 @@ export default function Configuracoes() {
                 {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'}
               </p>
               <p className="text-xs text-gray-500">
-                {user?.user_metadata?.role === 'admin' ? 'Administrador' : 'Usuário'}
+                {user?.app_metadata?.role === 'admin' ? 'Administrador' : 'Usuário'}
               </p>
               <p className="text-xs text-gray-400 mt-0.5">{user?.email}</p>
             </div>

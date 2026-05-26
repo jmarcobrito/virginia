@@ -1,12 +1,15 @@
 {
-  "name": "Virginia — Captura de Documentos WhatsApp",
+  "name": "Virginia - Captura de Documentos WhatsApp",
   "nodes": [
     {
       "id": "a1b2c3d4-0001-0001-0001-000000000001",
       "name": "WhatsApp Incoming",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "parameters": {
         "path": "whatsapp-incoming",
         "httpMethod": "POST",
@@ -16,20 +19,43 @@
       }
     },
     {
+      "id": "a1b2c3d4-0101-0101-0101-000000000101",
+      "name": "Normalizar mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const body = $json.body ?? $json;\nconst data = body.data ?? body;\nconst eventData = Array.isArray(data.messages) ? data.messages[0] ?? data : data;\nconst rootMessage = eventData.message ?? data.message ?? data;\nconst rootKey = eventData.key ?? data.key ?? rootMessage.key ?? {};\nconst mediaTypes = ['documentMessage', 'imageMessage', 'audioMessage', 'videoMessage'];\nconst messageTypeAliases = {\n  document: 'documentMessage',\n  file: 'documentMessage',\n  image: 'imageMessage',\n  photo: 'imageMessage',\n  picture: 'imageMessage',\n  audio: 'audioMessage',\n  voice: 'audioMessage',\n  ptt: 'audioMessage',\n  video: 'videoMessage',\n};\n\nfunction normalizeMessageType(value) {\n  if (!value) return '';\n  const raw = String(value);\n  return mediaTypes.includes(raw) ? raw : messageTypeAliases[raw] ?? '';\n}\n\nfunction inferMessageTypeFromMime(mimetype) {\n  if (!mimetype) return '';\n  if (mimetype.startsWith('image/')) return 'imageMessage';\n  if (mimetype.startsWith('audio/')) return 'audioMessage';\n  if (mimetype.startsWith('video/')) return 'videoMessage';\n  if (mimetype === 'application/pdf' || mimetype.startsWith('application/')) return 'documentMessage';\n  return '';\n}\n\nfunction looksLikeMedia(value) {\n  if (!value || typeof value !== 'object') return false;\n  return Boolean(\n    value.mimetype ||\n    value.mimeType ||\n    value.url ||\n    value.directPath ||\n    value.mediaKey ||\n    value.fileSha256 ||\n    value.fileEncSha256 ||\n    value.base64 ||\n    value.fileName ||\n    value.filename\n  );\n}\n\nfunction findMedia(value, depth = 0, seen = new Set()) {\n  if (!value || typeof value !== 'object' || depth > 8 || seen.has(value)) return null;\n  seen.add(value);\n\n  for (const type of mediaTypes) {\n    if (value[type]) return { messageType: type, media: value[type] };\n  }\n\n  if (looksLikeMedia(value)) {\n    const mimetype = value.mimetype ?? value.mimeType ?? '';\n    return { messageType: inferMessageTypeFromMime(mimetype), media: value };\n  }\n\n  const priorityKeys = [\n    'message',\n    'ephemeralMessage',\n    'viewOnceMessage',\n    'viewOnceMessageV2',\n    'viewOnceMessageV2Extension',\n    'documentWithCaptionMessage',\n    'editedMessage',\n    'deviceSentMessage',\n    'quotedMessage',\n    'media',\n  ];\n\n  for (const key of priorityKeys) {\n    const found = findMedia(value[key], depth + 1, seen);\n    if (found) return found;\n  }\n\n  for (const nested of Object.values(value)) {\n    const found = findMedia(nested, depth + 1, seen);\n    if (found) return found;\n  }\n\n  return null;\n}\n\nconst declaredMessageType = normalizeMessageType(eventData.messageType ?? data.messageType ?? body.messageType);\nconst foundMedia = findMedia(rootMessage) ?? findMedia(eventData.media) ?? findMedia(data.media) ?? findMedia(data);\nconst messageType = declaredMessageType || foundMedia?.messageType || '';\nconst media = foundMedia?.media ?? (rootMessage && typeof rootMessage === 'object' ? rootMessage[messageType] : null) ?? {};\nconst remoteJid = rootKey.remoteJid ?? eventData.remoteJid ?? data.remoteJid ?? '';\nconst normalizedRemoteJid = String(remoteJid)\n  .replace('@s.whatsapp.net', '')\n  .replace('@lid', '')\n  .replace('@g.us', '');\nconst instance = body.instance ?? data.instance ?? eventData.instance ?? body.instanceName ?? data.instanceName ?? '';\nconst messageId = rootKey.id ?? eventData.id ?? data.id ?? media.id ?? '';\nconst mimetype = media.mimetype ?? media.mimeType ?? eventData.mimetype ?? data.mimetype ?? '';\nconst extensionByMime = {\n  'application/pdf': '.pdf',\n  'image/jpeg': '.jpg',\n  'image/png': '.png',\n  'image/webp': '.webp',\n  'audio/ogg': '.ogg',\n  'audio/mpeg': '.mp3',\n  'audio/mp3': '.mp3',\n  'audio/mp4': '.m4a',\n  'audio/x-m4a': '.m4a',\n  'audio/wav': '.wav',\n  'video/mp4': '.mp4',\n};\nconst extension = extensionByMime[mimetype] ?? '';\nconst fileName = media.fileName ?? media.filename ?? media.title ?? String(messageId || Date.now()) + (extension || '.bin');\nconst base64FromWebhook = media.base64 ?? eventData.base64 ?? data.base64 ?? eventData.media?.base64 ?? data.media?.base64 ?? null;\nconst isAcceptedMime = Boolean(mimetype && (\n  mimetype.startsWith('image/') ||\n  mimetype.startsWith('audio/') ||\n  mimetype.startsWith('video/') ||\n  mimetype === 'application/pdf' ||\n  mimetype.startsWith('application/')\n));\nconst hasFile = mediaTypes.includes(messageType) || isAcceptedMime || Boolean(media.url || media.directPath || media.mediaKey || base64FromWebhook);\n\nreturn [{\n  json: {\n    hasFile,\n    instance,\n    messageId,\n    remoteJid,\n    normalizedRemoteJid,\n    messageType,\n    mimetype,\n    fileName,\n    base64FromWebhook,\n    originalData: eventData,\n  },\n}];"
+      }
+    },
+    {
       "id": "a1b2c3d4-0002-0002-0002-000000000002",
       "name": "Tem arquivo?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [460, 300],
+      "position": [
+        680,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
             {
-              "id": "cond-001",
-              "leftValue": "={{ $json.body.data.messageType !== \"conversation\" && $json.body.data.messageType !== \"extendedTextMessage\" }}",
+              "id": "cond-has-file",
+              "leftValue": "={{ $json.hasFile === true }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "true" }
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
             }
           ],
           "combinator": "and"
@@ -41,11 +67,29 @@
       "name": "Buscar fontes autorizadas",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [680, 220],
+      "position": [
+        900,
+        220
+      ],
       "parameters": {
         "method": "GET",
-        "url": "https://virginia-backend-virginia-backend.5ivdfc.easypanel.host/api/settings/authorized-sources",
-        "options": { "response": { "response": { "responseFormat": "json" } } }
+        "url": "={{ $env.VIRGINIA_BACKEND_URL + '/api/settings/authorized-sources' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-virginia-webhook-secret",
+              "value": "={{ $env.VIRGINIA_WEBHOOK_SECRET }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
       }
     },
     {
@@ -53,16 +97,26 @@
       "name": "Fonte autorizada?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [900, 220],
+      "position": [
+        1120,
+        220
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "cond-auth",
-              "leftValue": "={{ $('Buscar fontes autorizadas').item.json.numbers.includes($('WhatsApp Incoming').item.json.body.data.key.remoteJid.replace('@s.whatsapp.net', '')) || $('Buscar fontes autorizadas').item.json.groups.some(g => $('WhatsApp Incoming').item.json.body.data.key.remoteJid.includes(g)) }}",
+              "leftValue": "={{ (() => { const src = $('Normalizar mensagem').item.json; const auth = $('Buscar fontes autorizadas').item.json; const numbers = auth.numbers || []; const groups = auth.groups || []; const remote = src.remoteJid || ''; const normalized = src.normalizedRemoteJid || ''; return numbers.includes(normalized) || numbers.some(n => remote.includes(n)) || groups.some(g => remote.includes(g) || normalized.includes(g)); })() }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "true" }
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
             }
           ],
           "combinator": "and"
@@ -70,155 +124,182 @@
       }
     },
     {
-      "id": "a1b2c3d4-0015-0015-0015-000000000015",
-      "name": "Ignorar (fonte não autorizada)",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [900, 380],
-      "parameters": {}
-    },
-    {
-      "id": "a1b2c3d4-0003-0003-0003-000000000003",
-      "name": "Buscar instância ativa",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1120, 220],
+      "id": "a1b2c3d4-0102-0102-0102-000000000102",
+      "name": "Tem base64 no webhook?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        220
+      ],
       "parameters": {
-        "method": "GET",
-        "url": "https://virginia-backend-virginia-backend.5ivdfc.easypanel.host/api/whatsapp/status",
-        "options": { "response": { "response": { "responseFormat": "json" } } }
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-webhook-base64",
+              "leftValue": "={{ !!$json.base64FromWebhook }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
       }
     },
     {
       "id": "a1b2c3d4-0004-0004-0004-000000000004",
-      "name": "Baixar arquivo",
+      "name": "Baixar midia",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1340, 220],
+      "position": [
+        1560,
+        320
+      ],
       "parameters": {
-        "method": "GET",
-        "url": "=https://evolution-api-evolution-api.5ivdfc.easypanel.host/message/download/{{ $('WhatsApp Incoming').item.json.body.instance }}/{{ $('WhatsApp Incoming').item.json.body.data.key.id }}",
+        "method": "POST",
+        "url": "={{ $env.EVOLUTION_API_URL + '/chat/getBase64FromMediaMessage/' + $('Normalizar mensagem').item.json.instance }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "apikey", "value": "B60320B7A22B-4E3B-A694-AB8F3BE1DBEC" }]
-        },
-        "options": { "response": { "response": { "responseFormat": "file" } } }
-      }
-    },
-    {
-      "id": "a1b2c3d4-0005-0005-0005-000000000005",
-      "name": "Tipo de arquivo",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3,
-      "position": [1560, 220],
-      "parameters": {
-        "mode": "expression",
-        "output": 0,
-        "rules": {
-          "rules": [
+          "parameters": [
             {
-              "conditions": {
-                "conditions": [{ "leftValue": "={{ $('WhatsApp Incoming').item.json.body.data.messageType }}", "rightValue": "documentMessage", "operator": { "type": "string", "operation": "equals" } }],
-                "combinator": "and"
-              },
-              "output": 0
+              "name": "apikey",
+              "value": "={{ $env.EVOLUTION_API_KEY }}"
             },
             {
-              "conditions": {
-                "conditions": [{ "leftValue": "={{ $('WhatsApp Incoming').item.json.body.data.messageType }}", "rightValue": "imageMessage", "operator": { "type": "string", "operation": "equals" } }],
-                "combinator": "and"
-              },
-              "output": 1
-            },
-            {
-              "conditions": {
-                "conditions": [{ "leftValue": "={{ $('WhatsApp Incoming').item.json.body.data.messageType }}", "rightValue": "audioMessage", "operator": { "type": "string", "operation": "equals" } }],
-                "combinator": "and"
-              },
-              "output": 2
+              "name": "Content-Type",
+              "value": "application/json"
             }
           ]
         },
-        "fallbackOutput": 3
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { message: $('Normalizar mensagem').item.json.originalData, convertToMp4: false } }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "a1b2c3d4-0103-0103-0103-000000000103",
+      "name": "Converter midia em arquivo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        220
+      ],
+      "parameters": {
+        "jsCode": "const source = $('Normalizar mensagem').item.json;\nconst response = $json ?? {};\nconst candidates = [\n  response.base64,\n  response.data?.base64,\n  response.file?.base64,\n  response.media?.base64,\n  response.response?.base64,\n  response.result?.base64,\n  source.base64FromWebhook,\n];\nconst rawBase64 = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);\n\nif (!rawBase64) {\n  return [{\n    json: {\n      ...source,\n      mediaReady: false,\n      error_reason: response.error?.message || response.message || 'Evolution nao retornou base64 da midia',\n      evolution_response: response,\n    },\n  }];\n}\n\nconst cleanBase64 = rawBase64.replace(/^data:[^;]+;base64,/, '').replace(/\\s/g, '');\nlet buffer;\ntry {\n  buffer = Buffer.from(cleanBase64, 'base64');\n} catch (error) {\n  return [{\n    json: {\n      ...source,\n      mediaReady: false,\n      error_reason: 'Base64 invalido: ' + error.message,\n    },\n  }];\n}\n\nif (!buffer.length) {\n  return [{ json: { ...source, mediaReady: false, error_reason: 'Arquivo vazio apos conversao de base64' } }];\n}\n\nconst mimetype = response.mimetype || response.mimeType || source.mimetype || 'application/octet-stream';\nconst fileName = response.fileName || response.filename || source.fileName || String(source.messageId || Date.now()) + '.bin';\nconst binaryData = await this.helpers.prepareBinaryData(buffer, fileName, mimetype);\n\nreturn [{\n  json: {\n    ...source,\n    mediaReady: true,\n    mimetype,\n    fileName,\n    sizeBytes: buffer.length,\n  },\n  binary: {\n    data: binaryData,\n  },\n}];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0104-0104-0104-000000000104",
+      "name": "Arquivo convertido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        220
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-media-ready",
+              "leftValue": "={{ $json.mediaReady === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
       }
     },
     {
       "id": "a1b2c3d4-0006-0006-0006-000000000006",
-      "name": "Upload PDF",
+      "name": "Upload documento",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1780, 120],
+      "position": [
+        2220,
+        140
+      ],
       "parameters": {
         "method": "POST",
-        "url": "https://virginia-backend-virginia-backend.5ivdfc.easypanel.host/api/upload/",
+        "url": "={{ $env.VIRGINIA_BACKEND_URL + '/api/upload/' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-virginia-webhook-secret",
+              "value": "={{ $env.VIRGINIA_WEBHOOK_SECRET }}"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
           "parameters": [
-            { "parameterType": "formBinaryData", "name": "file", "inputDataFieldName": "data" },
-            { "name": "origin", "value": "whatsapp" },
-            { "name": "whatsapp_message_id", "value": "={{ $('WhatsApp Incoming').item.json.body.data.key.id }}" }
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "origin",
+              "value": "whatsapp"
+            },
+            {
+              "name": "whatsapp_message_id",
+              "value": "={{ $('Normalizar mensagem').item.json.messageId }}"
+            }
           ]
         },
         "options": {}
-      }
-    },
-    {
-      "id": "a1b2c3d4-0007-0007-0007-000000000007",
-      "name": "Upload Imagem",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1780, 260],
-      "parameters": {
-        "method": "POST",
-        "url": "https://virginia-backend-virginia-backend.5ivdfc.easypanel.host/api/upload/",
-        "sendBody": true,
-        "contentType": "multipart-form-data",
-        "bodyParameters": {
-          "parameters": [
-            { "parameterType": "formBinaryData", "name": "file", "inputDataFieldName": "data" },
-            { "name": "origin", "value": "whatsapp" },
-            { "name": "whatsapp_message_id", "value": "={{ $('WhatsApp Incoming').item.json.body.data.key.id }}" }
-          ]
-        },
-        "options": {}
-      }
-    },
-    {
-      "id": "a1b2c3d4-0008-0008-0008-000000000008",
-      "name": "Upload Audio",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1780, 400],
-      "parameters": {
-        "method": "POST",
-        "url": "https://virginia-backend-virginia-backend.5ivdfc.easypanel.host/api/upload/",
-        "sendBody": true,
-        "contentType": "multipart-form-data",
-        "bodyParameters": {
-          "parameters": [
-            { "parameterType": "formBinaryData", "name": "file", "inputDataFieldName": "data" },
-            { "name": "origin", "value": "whatsapp" },
-            { "name": "whatsapp_message_id", "value": "={{ $('WhatsApp Incoming').item.json.body.data.key.id }}" }
-          ]
-        },
-        "options": {}
-      }
+      },
+      "continueOnFail": true
     },
     {
       "id": "a1b2c3d4-0009-0009-0009-000000000009",
       "name": "Upload OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2000, 260],
+      "position": [
+        2440,
+        140
+      ],
       "parameters": {
         "conditions": {
           "conditions": [
             {
-              "id": "cond-002",
-              "leftValue": "={{ $json.success }}",
+              "id": "cond-upload-ok",
+              "leftValue": "={{ $json.success === true }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "true" }
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
             }
           ],
           "combinator": "and"
@@ -230,22 +311,37 @@
       "name": "Registrar na fila de retry",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2220, 360],
+      "position": [
+        2660,
+        320
+      ],
       "parameters": {
         "method": "POST",
-        "url": "https://bbgjnnxstkycthuzjgsm.supabase.co/rest/v1/upload_queue",
+        "url": "={{ $env.SUPABASE_URL + '/rest/v1/upload_queue' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiZ2pubnhzdGt5Y3RodXpqZ3NtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTM1MDAyOSwiZXhwIjoyMDk0OTI2MDI5fQ.22OhZZWoQq0Mw9nAyTL4E5KT5StOrPd2lzH-JKRe_68" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiZ2pubnhzdGt5Y3RodXpqZ3NtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTM1MDAyOSwiZXhwIjoyMDk0OTI2MDI5fQ.22OhZZWoQq0Mw9nAyTL4E5KT5StOrPd2lzH-JKRe_68" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"whatsapp_message_id\": \"{{ $('WhatsApp Incoming').item.json.body.data.key.id }}\",\n  \"whatsapp_instance\": \"{{ $('WhatsApp Incoming').item.json.body.instance }}\",\n  \"error_reason\": \"Upload falhou: {{ $json.detail || 'erro desconhecido' }}\"\n}",
+        "jsonBody": "={{ { whatsapp_message_id: $('Normalizar mensagem').item.json.messageId || 'sem-id', whatsapp_instance: $('Normalizar mensagem').item.json.instance || 'sem-instancia', error_reason: $json.error_reason || $json.detail || $json.error?.message || $json.message || 'Erro desconhecido no upload via n8n' } }}",
         "options": {}
       }
     },
@@ -254,63 +350,190 @@
       "name": "Sucesso",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [2220, 200],
+      "position": [
+        2660,
+        80
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "a1b2c3d4-0015-0015-0015-000000000015",
+      "name": "Ignorar fonte nao autorizada",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        380
+      ],
       "parameters": {}
     },
     {
       "id": "a1b2c3d4-0012-0012-0012-000000000012",
-      "name": "Ignorar (sem arquivo)",
+      "name": "Ignorar sem arquivo",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [460, 460],
+      "position": [
+        680,
+        460
+      ],
       "parameters": {}
     }
   ],
   "connections": {
     "WhatsApp Incoming": {
-      "main": [[{ "node": "Tem arquivo?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Normalizar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar mensagem": {
+      "main": [
+        [
+          {
+            "node": "Tem arquivo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Tem arquivo?": {
       "main": [
-        [{ "node": "Buscar fontes autorizadas", "type": "main", "index": 0 }],
-        [{ "node": "Ignorar (sem arquivo)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Buscar fontes autorizadas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ignorar sem arquivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Buscar fontes autorizadas": {
-      "main": [[{ "node": "Fonte autorizada?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Fonte autorizada?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Fonte autorizada?": {
       "main": [
-        [{ "node": "Buscar instância ativa", "type": "main", "index": 0 }],
-        [{ "node": "Ignorar (fonte não autorizada)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Tem base64 no webhook?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ignorar fonte nao autorizada",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Buscar instância ativa": {
-      "main": [[{ "node": "Baixar arquivo", "type": "main", "index": 0 }]]
-    },
-    "Baixar arquivo": {
-      "main": [[{ "node": "Tipo de arquivo", "type": "main", "index": 0 }]]
-    },
-    "Tipo de arquivo": {
+    "Tem base64 no webhook?": {
       "main": [
-        [{ "node": "Upload PDF", "type": "main", "index": 0 }],
-        [{ "node": "Upload Imagem", "type": "main", "index": 0 }],
-        [{ "node": "Upload Audio", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Converter midia em arquivo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Baixar midia",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Upload PDF": {
-      "main": [[{ "node": "Upload OK?", "type": "main", "index": 0 }]]
+    "Baixar midia": {
+      "main": [
+        [
+          {
+            "node": "Converter midia em arquivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Upload Imagem": {
-      "main": [[{ "node": "Upload OK?", "type": "main", "index": 0 }]]
+    "Converter midia em arquivo": {
+      "main": [
+        [
+          {
+            "node": "Arquivo convertido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Upload Audio": {
-      "main": [[{ "node": "Upload OK?", "type": "main", "index": 0 }]]
+    "Arquivo convertido?": {
+      "main": [
+        [
+          {
+            "node": "Upload documento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar na fila de retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload documento": {
+      "main": [
+        [
+          {
+            "node": "Upload OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Upload OK?": {
       "main": [
-        [{ "node": "Sucesso", "type": "main", "index": 0 }],
-        [{ "node": "Registrar na fila de retry", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Sucesso",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar na fila de retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
@@ -320,5 +543,9 @@
     "callerPolicy": "workflowsFromSameOwner"
   },
   "staticData": null,
-  "tags": [{ "name": "virginia" }]
+  "tags": [
+    {
+      "name": "virginia"
+    }
+  ]
 }

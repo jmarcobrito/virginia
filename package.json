@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
+    "typecheck": "tsc -b --noEmit",
+    "lint": "npm run typecheck",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -1,7 +1,8 @@
 import logging
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth import require_user, require_user_or_webhook
 from app.config import settings
 from app.database import supabase
 
@@ -58,7 +59,31 @@ async def _phone_from_instance(client: httpx.AsyncClient, instance: str) -> str 
     return None
 
 
-@router.get("/status")
+def _webhook_payload(instance: str) -> dict:
+    return {
+        "webhook": {
+            "enabled": True,
+            "url": f"{settings.n8n_url}/webhook/whatsapp-incoming",
+            "byEvents": False,
+            "base64": True,
+            "events": ["MESSAGES_UPSERT"],
+        }
+    }
+
+
+async def _ensure_webhook(client: httpx.AsyncClient, instance: str):
+    try:
+        await client.post(
+            f"{settings.evolution_api_url}/webhook/set/{instance}",
+            headers=_headers(),
+            json=_webhook_payload(instance),
+            timeout=10.0,
+        )
+    except Exception:
+        pass
+
+
+@router.get("/status", dependencies=[Depends(require_user_or_webhook)])
 async def get_status():
     active = _get_setting(ACTIVE_KEY)
     if not active:
@@ -77,7 +102,7 @@ async def get_status():
             return {"status": "unreachable", "instance": active, "phone": None}
 
 
-@router.get("/qrcode")
+@router.get("/qrcode", dependencies=[Depends(require_user)])
 async def get_qrcode():
     instance = settings.evolution_instance_name
     async with httpx.AsyncClient() as client:
@@ -99,12 +124,7 @@ async def get_qrcode():
                         "instanceName": instance,
                         "integration": "WHATSAPP-BAILEYS",
                         "qrcode": True,
-                        "webhook": {
-                            "url": f"{settings.n8n_url}/webhook/whatsapp-incoming",
-                            "byEvents": False,
-                            "base64": False,
-                            "events": ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
-                        },
+                        **_webhook_payload(instance),
                     },
                     timeout=15.0,
                 )
@@ -114,6 +134,7 @@ async def get_qrcode():
             if create.status_code not in (200, 201):
                 raise HTTPException(502, f"Evolution API: {create.text}")
 
+        await _ensure_webhook(client, instance)
         _upsert_setting(ACTIVE_KEY, instance)
 
         try:
@@ -133,7 +154,7 @@ async def get_qrcode():
         return {"qr": qr}
 
 
-@router.delete("/disconnect")
+@router.delete("/disconnect", dependencies=[Depends(require_user)])
 async def disconnect():
     active = _get_setting(ACTIVE_KEY)
     if not active:
@@ -146,7 +167,7 @@ async def disconnect():
                 headers=_headers(),
                 timeout=5.0,
             )
-            logging.info("Evolution API logout — status: %s body: %s", r.status_code, r.text)
+            logging.info("Evolution API logout status: %s", r.status_code)
         except Exception as e:
             logging.warning("Evolution API logout falhou: %s", e)
 

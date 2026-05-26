@@ -9,7 +9,7 @@ import { formatDate, getUrgency, cn } from '@/lib/utils'
 const STATUS_CONFIG: Record<Payment['status'], { label: string; bg: string; text: string; dot: string }> = {
   pendente: { label: 'Pendente', bg: 'bg-amber-50',   text: 'text-amber-600',   dot: 'bg-amber-500' },
   pago:     { label: 'Pago',     bg: 'bg-emerald-50', text: 'text-emerald-600', dot: 'bg-emerald-500' },
-  vencido:  { label: 'Vencido',  bg: 'bg-red-50',     text: 'text-red-600',     dot: 'bg-red-500' },
+  atrasado: { label: 'Vencido',  bg: 'bg-red-50',     text: 'text-red-600',     dot: 'bg-red-500' },
 }
 
 const fmt = (v: number | null) =>
@@ -100,7 +100,7 @@ export default function Pagamentos() {
           <option value="Todos">Todos os status</option>
           <option value="pendente">Pendente</option>
           <option value="pago">Pago</option>
-          <option value="vencido">Vencido</option>
+          <option value="atrasado">Vencido</option>
         </select>
         <select
           value={filterOrigin}
@@ -144,7 +144,7 @@ export default function Pagamentos() {
               payments.map((p) => {
                 const sc = STATUS_CONFIG[p.status]
                 const urgency = getUrgency(p.vencimento)
-                const rowBg = p.status === 'vencido' ? 'bg-red-50/60' : ''
+                const rowBg = p.status === 'atrasado' ? 'bg-red-50/60' : ''
                 return (
                   <tr
                     key={p.id}
@@ -235,7 +235,7 @@ export default function Pagamentos() {
             >
               <option value="pendente">Pendente</option>
               <option value="pago">Pago</option>
-              <option value="vencido">Vencido</option>
+              <option value="atrasado">Vencido</option>
             </select>
           </div>
 

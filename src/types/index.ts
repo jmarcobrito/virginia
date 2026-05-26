@@ -28,6 +28,11 @@ export interface Documento {
   partes: string[]
   tags: string[]
   resumo: string
+  formato: string | null
+  tamanhoBytes: number | null
+  urlArquivo: string | null
+  caminhoArquivo: string | null
+  whatsappMessageId: string | null
 }
 
 export interface DocumentFilters {
@@ -46,7 +51,7 @@ export interface Cheque {
   numero: string | null
   data_emissao: string | null
   data_compensacao: string | null
-  status: 'emitido' | 'compensado' | 'devolvido'
+  status: 'pendente' | 'compensado' | 'devolvido'
   document_id: string | null
   created_at: string
 }
@@ -57,7 +62,7 @@ export interface Payment {
   beneficiario: string
   vencimento: string | null
   codigo_barras: string | null
-  status: 'pendente' | 'pago' | 'vencido'
+  status: 'pendente' | 'pago' | 'atrasado'
   origin: 'manual' | 'whatsapp'
   document_id: string | null
   paid_at: string | null

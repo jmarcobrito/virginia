@@ -7,7 +7,7 @@ services:
     environment:
       - SERVER_URL=${EVOLUTION_SERVER_URL:-http://localhost:8080}
       - AUTHENTICATION_TYPE=apikey
-      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-virginia_evo_key}
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY}
       - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
       - DEL_INSTANCE=false
       - QRCODE_LIMIT=30
@@ -40,8 +40,9 @@ services:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
       - VIRGINIA_BACKEND_URL=${VIRGINIA_BACKEND_URL:-http://host.docker.internal:8000}
+      - VIRGINIA_WEBHOOK_SECRET=${VIRGINIA_WEBHOOK_SECRET}
       - EVOLUTION_API_URL=http://evolution-api:8080
-      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY:-virginia_evo_key}
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
       - ALERT_PHONE_NUMBER=${ALERT_PHONE_NUMBER}
     volumes:
       - n8n_data:/home/node/.n8n

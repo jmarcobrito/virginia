@@ -9,20 +9,20 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(cents: number | null): string {
-  if (cents === null) return '—'
+export function formatCurrency(value: number | null): string {
+  if (value === null) return '-'
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-  }).format(cents / 100)
+  }).format(value)
 }
 
 export function formatDate(iso: string | null): string {
-  if (!iso) return '—'
+  if (!iso) return '-'
   try {
     return format(parseISO(iso), 'dd/MM/yyyy', { locale: ptBR })
   } catch {
-    return '—'
+    return '-'
   }
 }
 
@@ -48,7 +48,7 @@ export function getStatusConfig(status: StatusDocumento): {
 } {
   const map: Record<StatusDocumento, { label: string; bg: string; text: string; dot: string }> = {
     recebido: { label: 'Recebido', bg: 'bg-gray-100', text: 'text-gray-600', dot: 'bg-gray-400' },
-    em_revisao: { label: 'Em Revisão', bg: 'bg-blue-50', text: 'text-blue-600', dot: 'bg-blue-500' },
+    em_revisao: { label: 'Em Revisao', bg: 'bg-blue-50', text: 'text-blue-600', dot: 'bg-blue-500' },
     pendente_assinatura: { label: 'Pendente Assinatura', bg: 'bg-amber-50', text: 'text-amber-600', dot: 'bg-amber-500' },
     assinado: { label: 'Assinado', bg: 'bg-emerald-50', text: 'text-emerald-600', dot: 'bg-emerald-500' },
     arquivado: { label: 'Arquivado', bg: 'bg-gray-200', text: 'text-gray-500', dot: 'bg-gray-400' },
@@ -60,10 +60,10 @@ export function getTipoConfig(tipo: TipoDocumento): { label: string; abbr: strin
   const map: Record<TipoDocumento, { label: string; abbr: string }> = {
     contrato: { label: 'Contrato', abbr: 'CT' },
     nota_fiscal: { label: 'Nota Fiscal', abbr: 'NF' },
-    procuracao: { label: 'Procuração', abbr: 'PR' },
+    procuracao: { label: 'Procuracao', abbr: 'PR' },
     escritura: { label: 'Escritura', abbr: 'ES' },
     boleto: { label: 'Boleto', abbr: 'BL' },
-    orcamento: { label: 'Orçamento', abbr: 'OC' },
+    orcamento: { label: 'Orcamento', abbr: 'OC' },
     outro: { label: 'Outro', abbr: 'OU' },
   }
   return map[tipo]

@@ -88,7 +88,7 @@ export default function Perfil() {
             <div>
               <p className="text-sm font-semibold text-gray-800">{displayName}</p>
               <p className="text-xs text-gray-500">{user?.email}</p>
-              {user?.user_metadata?.role === 'admin' && (
+              {user?.app_metadata?.role === 'admin' && (
                 <span className="mt-1 inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#0F6E8C]/[0.08] text-[#0F6E8C]">
                   Administrador
                 </span>

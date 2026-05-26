@@ -21,7 +21,13 @@
       "position": [460, 300],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.VIRGINIA_BACKEND_URL }}/api/settings/whatsapp_alerts_enabled",
+        "url": "={{ $env.VIRGINIA_BACKEND_URL + '/api/settings/whatsapp_alerts_enabled' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-virginia-webhook-secret", "value": "={{ $env.VIRGINIA_WEBHOOK_SECRET }}" }
+          ]
+        },
         "options": {}
       }
     },
@@ -53,7 +59,13 @@
       "position": [900, 220],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.VIRGINIA_BACKEND_URL }}/api/whatsapp/status",
+        "url": "={{ $env.VIRGINIA_BACKEND_URL + '/api/whatsapp/status' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-virginia-webhook-secret", "value": "={{ $env.VIRGINIA_WEBHOOK_SECRET }}" }
+          ]
+        },
         "options": {}
       }
     },
@@ -85,12 +97,12 @@
       "position": [1340, 140],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/documents",
+        "url": "={{ $env.SUPABASE_URL + '/rest/v1/documents' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}" }
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_KEY }}" }
           ]
         },
         "sendQuery": true,
@@ -112,7 +124,7 @@
       "typeVersion": 2,
       "position": [1560, 140],
       "parameters": {
-        "jsCode": "const docs = $input.all();\nif (!docs.length) return [{ json: { skip: true, message: '', total: 0 } }];\n\nconst criticos = docs.filter(d => d.json.days_to_expire <= 7);\nconst atencao = docs.filter(d => d.json.days_to_expire > 7 && d.json.days_to_expire <= 30);\n\nlet msg = '📋 *Íris — Alertas do dia*\\n\\n';\n\nif (criticos.length > 0) {\n  msg += '🔴 *CRÍTICO — Vence em até 7 dias:*\\n';\n  criticos.forEach(d => {\n    msg += `• ${d.json.name} — *${d.json.days_to_expire} dias*\\n`;\n  });\n  msg += '\\n';\n}\n\nif (atencao.length > 0) {\n  msg += '🟡 *ATENÇÃO — Vence em até 30 dias:*\\n';\n  atencao.forEach(d => {\n    msg += `• ${d.json.name} — ${d.json.days_to_expire} dias\\n`;\n  });\n}\n\nreturn [{ json: { skip: false, message: msg, total: docs.length } }];"
+        "jsCode": "const docs = $input.all();\nif (!docs.length) return [{ json: { skip: true, message: '', total: 0 } }];\n\nconst criticos = docs.filter(d => d.json.days_to_expire <= 7);\nconst atencao = docs.filter(d => d.json.days_to_expire > 7 && d.json.days_to_expire <= 30);\n\nlet msg = '📋 *Virgínia — Alertas do dia*\\n\\n';\n\nif (criticos.length > 0) {\n  msg += '🔴 *CRÍTICO — Vence em até 7 dias:*\\n';\n  criticos.forEach(d => {\n    msg += `• ${d.json.name} — *${d.json.days_to_expire} dias*\\n`;\n  });\n  msg += '\\n';\n}\n\nif (atencao.length > 0) {\n  msg += '🟡 *ATENÇÃO — Vence em até 30 dias:*\\n';\n  atencao.forEach(d => {\n    msg += `• ${d.json.name} — ${d.json.days_to_expire} dias\\n`;\n  });\n}\n\nreturn [{ json: { skip: false, message: msg, total: docs.length } }];"
       }
     },
     {
@@ -143,7 +155,7 @@
       "position": [2000, 80],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $('Status WhatsApp').item.json.instance }}",
+        "url": "={{ $env.EVOLUTION_API_URL + '/message/sendText/' + $('Status WhatsApp').item.json.instance }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -153,7 +165,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"number\": \"{{ $env.ALERT_PHONE_NUMBER }}\",\n  \"text\": \"{{ $('Montar mensagem').item.json.message }}\"\n}",
+        "jsonBody": "={{ { number: $env.ALERT_PHONE_NUMBER, text: $('Montar mensagem').item.json.message } }}",
         "options": {}
       }
     },
@@ -165,14 +177,17 @@
       "position": [2220, 80],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.VIRGINIA_BACKEND_URL }}/api/activity/",
+        "url": "={{ $env.VIRGINIA_BACKEND_URL + '/api/activity/' }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-virginia-webhook-secret", "value": "={{ $env.VIRGINIA_WEBHOOK_SECRET }}" }
+          ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"type\": \"alert\",\n  \"text\": \"Alertas de vencimento enviados via WhatsApp ({{ $('Montar mensagem').item.json.total }} documentos)\",\n  \"metadata\": { \"source\": \"n8n_cron\" }\n}",
+        "jsonBody": "={{ { type: 'alert', text: 'Alertas de vencimento enviados via WhatsApp (' + $('Montar mensagem').item.json.total + ' documentos)', metadata: { source: 'n8n_cron' } } }}",
         "options": {}
       }
     },

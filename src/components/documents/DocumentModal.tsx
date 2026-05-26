@@ -33,22 +33,31 @@ export function DocumentModal({ document: doc, isOpen, onClose }: DocumentModalP
   const urgency = getUrgency(doc.dataVencimento)
   const daysUntil = getDaysUntil(doc.dataVencimento)
 
-  function handleStatusChange(newStatus: StatusDocumento) {
+  async function handleStatusChange(newStatus: StatusDocumento) {
     if (!doc) return
+    const previous = currentStatus
     setCurrentStatus(newStatus)
-    updateDocumentStatus(doc.id, newStatus)
-    showToast('Status alterado com sucesso')
+    const ok = await updateDocumentStatus(doc.id, newStatus)
+    if (ok) showToast('Status alterado com sucesso')
+    else setCurrentStatus(previous)
   }
 
-  function handleArquivar() {
+  async function handleArquivar() {
     if (!doc) return
-    updateDocumentStatus(doc.id, 'arquivado')
-    showToast('Documento arquivado')
-    onClose()
+    const ok = await updateDocumentStatus(doc.id, 'arquivado')
+    if (ok) {
+      showToast('Documento arquivado')
+      onClose()
+    }
   }
 
   function handleDownload() {
-    showToast('Funcionalidade em desenvolvimento')
+    const fileUrl = doc?.urlArquivo
+    if (!fileUrl) {
+      showToast('Arquivo indisponivel para download')
+      return
+    }
+    window.open(fileUrl, '_blank', 'noopener,noreferrer')
   }
 
   return (

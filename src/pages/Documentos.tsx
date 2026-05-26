@@ -66,7 +66,14 @@ function ActionsMenu({ doc, onView }: { doc: Documento; onView: (d: Documento) =
         <Eye size={13} />
       </button>
       <button
-        onClick={(e) => { e.stopPropagation(); showToast('Funcionalidade em desenvolvimento') }}
+        onClick={(e) => {
+          e.stopPropagation()
+          if (!doc.urlArquivo) {
+            showToast('Arquivo indisponivel para download')
+            return
+          }
+          window.open(doc.urlArquivo, '_blank', 'noopener,noreferrer')
+        }}
         className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
         title="Download"
       >
@@ -98,11 +105,11 @@ function ActionsMenu({ doc, onView }: { doc: Documento; onView: (d: Documento) =
             Alterar status
           </button>
           <button
-            onClick={(e) => {
+            onClick={async (e) => {
               e.stopPropagation()
               setOpen(false)
-              updateDocumentStatus(doc.id, 'arquivado' as StatusDocumento)
-              showToast('Documento arquivado')
+              const ok = await updateDocumentStatus(doc.id, 'arquivado' as StatusDocumento)
+              if (ok) showToast('Documento arquivado')
             }}
             className="w-full text-left text-xs text-red-600 px-3 py-2.5 hover:bg-red-50 transition-colors"
           >

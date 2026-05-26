@@ -20,11 +20,21 @@ async def search(q: str):
     if rag_results:
         return {"results": rag_results, "mode": "semantic"}
 
-    docs = (
-        supabase.table("documents")
-        .select("*")
-        .ilike("name", f"%{q}%")
-        .execute()
-        .data
-    )
+    q_lower = q.lower()
+    all_docs = supabase.table("documents").select("*").limit(500).execute().data or []
+    docs = [
+        doc
+        for doc in all_docs
+        if q_lower
+        in " ".join(
+            [
+                doc.get("name") or "",
+                doc.get("type") or "",
+                doc.get("summary") or "",
+                " ".join(doc.get("parties") or []),
+                " ".join(doc.get("tags") or []),
+                doc.get("raw_text") or "",
+            ]
+        ).lower()
+    ]
     return {"results": docs, "mode": "text"}

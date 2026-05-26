@@ -16,13 +16,15 @@ def list_documents(
     page: int = 1,
     limit: int = 10,
 ):
+    page = max(page, 1)
+    limit = min(max(limit, 1), 100)
     query = supabase.table("documents").select("*").order("created_at", desc=True)
 
-    if type and type != "Todos":
+    if type and type not in ("Todos", "todos"):
         query = query.eq("type", type)
-    if status and status != "Todos":
+    if status and status not in ("Todos", "todos"):
         query = query.eq("status", status)
-    if origin and origin != "Todos":
+    if origin and origin not in ("Todos", "todos"):
         query = query.eq("origin", origin)
 
     result = query.execute()
@@ -63,7 +65,13 @@ def get_stats():
 
     return {
         "total": len(all_docs),
-        "pending": len([d for d in all_docs if d["status"] == "pendente"]),
+        "pending": len(
+            [
+                d
+                for d in all_docs
+                if d["status"] in ("em_revisao", "pendente_assinatura")
+            ]
+        ),
         "this_week": len([d for d in all_docs if d["created_at"] >= week_ago]),
         "expiring_soon": len(
             [

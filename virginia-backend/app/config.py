@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     evolution_api_key: str
     evolution_instance_name: str
     n8n_url: str = "http://host.docker.internal:5678"
+    virginia_webhook_secret: str = ""
+    storage_bucket: str = "virginia-documents"
+    max_upload_bytes: int = 20 * 1024 * 1024
+    cors_origins: str = "http://localhost:5173,http://localhost:3000"
 
     class Config:
         env_file = ".env"

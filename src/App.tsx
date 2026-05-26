@@ -29,7 +29,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth()
   if (isLoading) return <LoadingScreen />
   if (!user) return <Navigate to="/login" replace />
-  return <>{children}</>
+  return <AppProvider>{children}</AppProvider>
 }
 
 function AdminGuard({ children }: { children: ReactNode }) {
@@ -76,11 +76,9 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </AppProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
     </AuthProvider>
   )
 }

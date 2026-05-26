@@ -1,24 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import APIRouter, Depends, HTTPException
+
+from app.auth import require_admin, user_role
 from app.database import supabase
 
 router = APIRouter()
-_bearer = HTTPBearer()
-
-
-def require_admin(creds: HTTPAuthorizationCredentials = Depends(_bearer)):
-    try:
-        result = supabase.auth.get_user(creds.credentials)
-        user = result.user
-        if not user:
-            raise HTTPException(status_code=401, detail="Não autenticado")
-        meta = getattr(user, "user_metadata", None) or {}
-        if meta.get("role") != "admin":
-            raise HTTPException(status_code=403, detail="Acesso negado")
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(status_code=401, detail="Token inválido ou expirado")
 
 
 @router.get("/users", dependencies=[Depends(require_admin)])
@@ -36,15 +21,19 @@ def list_users():
             created_at = getattr(user, "created_at", None)
             last_sign_in = getattr(user, "last_sign_in_at", None)
             banned_until = getattr(user, "banned_until", None)
-            users.append({
-                "id": user.id,
-                "email": user.email,
-                "name": meta.get("full_name", ""),
-                "role": meta.get("role", "usuario"),
-                "created_at": created_at.isoformat() if created_at else None,
-                "last_sign_in_at": last_sign_in.isoformat() if last_sign_in else None,
-                "disabled": banned_until is not None,
-            })
+            users.append(
+                {
+                    "id": user.id,
+                    "email": user.email,
+                    "name": meta.get("full_name", ""),
+                    "role": user_role(user),
+                    "created_at": created_at.isoformat() if created_at else None,
+                    "last_sign_in_at": last_sign_in.isoformat()
+                    if last_sign_in
+                    else None,
+                    "disabled": banned_until is not None,
+                }
+            )
         return {"users": users}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -53,15 +42,17 @@ def list_users():
 @router.post("/users", dependencies=[Depends(require_admin)])
 def create_user(body: dict):
     try:
-        response = supabase.auth.admin.create_user({
-            "email": body["email"],
-            "password": body["password"],
-            "email_confirm": True,
-            "user_metadata": {
-                "full_name": body.get("name", ""),
-                "role": body.get("role", "usuario"),
-            },
-        })
+        response = supabase.auth.admin.create_user(
+            {
+                "email": body["email"],
+                "password": body["password"],
+                "email_confirm": True,
+                "user_metadata": {
+                    "full_name": body.get("name", ""),
+                },
+                "app_metadata": {"role": body.get("role", "usuario")},
+            }
+        )
         user = response.user
         return {"success": True, "user": {"id": user.id, "email": user.email}}
     except Exception as e:

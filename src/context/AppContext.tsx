@@ -5,7 +5,7 @@ import type { Documento, StatusDocumento } from '@/types'
 interface AppContextValue {
   documents: Documento[]
   loading: boolean
-  updateDocumentStatus: (id: string, status: StatusDocumento) => void
+  updateDocumentStatus: (id: string, status: StatusDocumento) => Promise<boolean>
   addDocument: (doc: Documento) => void
   refreshDocuments: () => void
   whatsappAlertsEnabled: boolean
@@ -46,25 +46,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  const setWhatsappAlertsEnabled = useCallback((val: boolean) => {
-    setWhatsappAlertsEnabledState(val)
-    api.updateSetting('whatsapp_alerts_enabled', val)
+  const showToast = useCallback((message: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    setToastMessage(message)
+    toastTimer.current = setTimeout(() => setToastMessage(null), 3000)
   }, [])
+
+  const setWhatsappAlertsEnabled = useCallback((val: boolean) => {
+    const previous = whatsappAlertsEnabled
+    setWhatsappAlertsEnabledState(val)
+    api.updateSetting('whatsapp_alerts_enabled', val).catch(() => {
+      setWhatsappAlertsEnabledState(previous)
+      showToast('Nao foi possivel salvar a configuracao')
+    })
+  }, [showToast, whatsappAlertsEnabled])
 
   const setAlertVencendo30 = useCallback((val: boolean) => {
+    const previous = alertVencendo30
     setAlertVencendo30State(val)
-    api.updateSetting('alert_30d_enabled', val)
-  }, [])
+    api.updateSetting('alert_30d_enabled', val).catch(() => {
+      setAlertVencendo30State(previous)
+      showToast('Nao foi possivel salvar a configuracao')
+    })
+  }, [alertVencendo30, showToast])
 
   const setAlertVencendo7 = useCallback((val: boolean) => {
+    const previous = alertVencendo7
     setAlertVencendo7State(val)
-    api.updateSetting('alert_7d_enabled', val)
-  }, [])
+    api.updateSetting('alert_7d_enabled', val).catch(() => {
+      setAlertVencendo7State(previous)
+      showToast('Nao foi possivel salvar a configuracao')
+    })
+  }, [alertVencendo7, showToast])
 
   const setAlertNovosDocumentos = useCallback((val: boolean) => {
+    const previous = alertNovosDocumentos
     setAlertNovosDocumentosState(val)
-    api.updateSetting('alert_new_docs_enabled', val)
-  }, [])
+    api.updateSetting('alert_new_docs_enabled', val).catch(() => {
+      setAlertNovosDocumentosState(previous)
+      showToast('Nao foi possivel salvar a configuracao')
+    })
+  }, [alertNovosDocumentos, showToast])
 
   const fetchDocuments = useCallback(async () => {
     setLoading(true)
@@ -83,22 +105,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [fetchDocuments])
 
   const updateDocumentStatus = useCallback(async (id: string, status: StatusDocumento) => {
+    const previous = documents
     setDocuments((prev) => prev.map((d) => (d.id === id ? { ...d, status } : d)))
     try {
       await api.updateStatus(id, status)
+      return true
     } catch (err) {
       console.error('Erro ao atualizar status:', err)
+      setDocuments(previous)
+      showToast('Nao foi possivel alterar o status')
+      return false
     }
-  }, [])
+  }, [documents, showToast])
 
   const addDocument = useCallback((doc: Documento) => {
     setDocuments((prev) => [doc, ...prev])
-  }, [])
-
-  const showToast = useCallback((message: string) => {
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    setToastMessage(message)
-    toastTimer.current = setTimeout(() => setToastMessage(null), 3000)
   }, [])
 
   return (

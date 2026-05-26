@@ -1,10 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from app.auth import require_user, require_user_or_webhook
 from app.database import supabase
 
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(require_user)])
 def get_activity(limit: int = 20):
     result = (
         supabase.table("activity_log")
@@ -16,7 +17,7 @@ def get_activity(limit: int = 20):
     return {"activities": result.data}
 
 
-@router.post("/")
+@router.post("/", dependencies=[Depends(require_user_or_webhook)])
 def create_activity(body: dict):
     supabase.table("activity_log").insert(
         {

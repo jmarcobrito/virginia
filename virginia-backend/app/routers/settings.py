@@ -1,10 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from app.auth import require_user, require_user_or_webhook
 from app.database import supabase
 
 router = APIRouter()
 
 
-@router.get("/authorized-sources")
+@router.get("/authorized-sources", dependencies=[Depends(require_user_or_webhook)])
 def get_authorized_sources():
     numbers_row = supabase.table("settings").select("value").eq("key", "authorized_numbers").execute()
     groups_row  = supabase.table("settings").select("value").eq("key", "authorized_groups").execute()
@@ -17,7 +18,7 @@ def get_authorized_sources():
     return {"numbers": numbers, "groups": groups}
 
 
-@router.post("/authorized-sources")
+@router.post("/authorized-sources", dependencies=[Depends(require_user)])
 def update_authorized_sources(body: dict):
     numbers_val = ",".join(body.get("numbers", []))
     groups_val  = ",".join(body.get("groups",  []))
@@ -31,7 +32,7 @@ def update_authorized_sources(body: dict):
     return {"success": True}
 
 
-@router.get("/{key}")
+@router.get("/{key}", dependencies=[Depends(require_user_or_webhook)])
 def get_setting(key: str):
     result = supabase.table("settings").select("value").eq("key", key).execute()
     if not result.data:
@@ -39,7 +40,7 @@ def get_setting(key: str):
     return result.data[0]
 
 
-@router.patch("/{key}")
+@router.patch("/{key}", dependencies=[Depends(require_user)])
 def update_setting(key: str, body: dict):
     supabase.table("settings").update({"value": body.get("value")}).eq("key", key).execute()
     return {"success": True}

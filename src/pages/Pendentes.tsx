@@ -94,9 +94,9 @@ export default function Pendentes() {
 
   const semPrazo = pending.filter((d) => getDaysUntil(d.dataVencimento) === null)
 
-  function handleResolve(doc: Documento) {
-    updateDocumentStatus(doc.id, 'assinado')
-    showToast(`"${doc.nome.slice(0, 40)}..." marcado como resolvido`)
+  async function handleResolve(doc: Documento) {
+    const ok = await updateDocumentStatus(doc.id, 'assinado')
+    if (ok) showToast(`"${doc.nome.slice(0, 40)}..." marcado como resolvido`)
   }
 
   if (pending.length === 0) {
