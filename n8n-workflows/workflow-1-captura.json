@@ -37,7 +37,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        900,
+        1340,
         300
       ],
       "parameters": {
@@ -68,7 +68,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1120,
+        900,
         220
       ],
       "parameters": {
@@ -90,7 +90,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        1340,
+        1120,
         220
       ],
       "parameters": {
@@ -392,7 +392,7 @@
       "main": [
         [
           {
-            "node": "Tem arquivo?",
+            "node": "Buscar fontes autorizadas",
             "type": "main",
             "index": 0
           }
@@ -403,7 +403,7 @@
       "main": [
         [
           {
-            "node": "Buscar fontes autorizadas",
+            "node": "Tem base64 no webhook?",
             "type": "main",
             "index": 0
           }
@@ -432,7 +432,7 @@
       "main": [
         [
           {
-            "node": "Tem base64 no webhook?",
+            "node": "Tem arquivo?",
             "type": "main",
             "index": 0
           }
