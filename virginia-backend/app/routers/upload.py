@@ -16,9 +16,9 @@ router = APIRouter()
 
 FORMAT_BY_SUFFIX = {
     ".pdf": "PDF",
-    ".jpg": "JPG",
-    ".jpeg": "JPG",
-    ".png": "PNG",
+    ".jpg": "IMG",
+    ".jpeg": "IMG",
+    ".png": "IMG",
     ".webp": "IMG",
     ".mp3": "AUD",
     ".mp4": "AUD",
@@ -42,8 +42,8 @@ MIME_BY_SUFFIX = {
 
 FORMAT_BY_MIME = {
     "application/pdf": "PDF",
-    "image/jpeg": "JPG",
-    "image/png": "PNG",
+    "image/jpeg": "IMG",
+    "image/png": "IMG",
     "image/webp": "IMG",
     "audio/mpeg": "AUD",
     "audio/mp3": "AUD",
@@ -249,7 +249,10 @@ async def upload_document(
             "whatsapp_message_id": whatsapp_message_id,
         }
 
-        supabase.table("documents").insert(doc_data).execute()
+        try:
+            supabase.table("documents").insert(doc_data).execute()
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Falha ao salvar documento: {e}")
 
         rag_indexed = False
         try:
