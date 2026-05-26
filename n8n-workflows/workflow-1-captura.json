@@ -6,10 +6,7 @@
       "name": "WhatsApp Incoming",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [
-        240,
-        300
-      ],
+      "position": [240, 300],
       "parameters": {
         "path": "whatsapp-incoming",
         "httpMethod": "POST",
@@ -19,16 +16,72 @@
       }
     },
     {
+      "id": "a1b2c3d4-0000-0000-0000-000000000000",
+      "name": "Configurar workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "jsCode": "const config = {\n  backendUrl: $env.VIRGINIA_BACKEND_URL || 'https://virginia-backend-virginia-backend.5ivdfc.easypanel.host',\n  webhookSecret: $env.VIRGINIA_WEBHOOK_SECRET,\n  evolutionApiUrl: $env.EVOLUTION_API_URL || 'https://evolution-api-evolution-api.5ivdfc.easypanel.host',\n  evolutionApiKey: $env.EVOLUTION_API_KEY,\n  evolutionInstance: $env.EVOLUTION_INSTANCE_NAME || 'virginia_evo_key',\n  supabaseUrl: $env.SUPABASE_URL || 'https://bbgjnnxstkycthuzjgsm.supabase.co',\n  supabaseServiceKey: $env.SUPABASE_SERVICE_KEY,\n};\n\nreturn $input.all().map((item) => ({\n  json: {\n    ...item.json,\n    __config: config,\n  },\n  binary: item.binary,\n}));"
+      }
+    },
+    {
       "id": "a1b2c3d4-0101-0101-0101-000000000101",
       "name": "Normalizar mensagem",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        680,
-        300
-      ],
+      "position": [680, 300],
       "parameters": {
         "jsCode": "const body = $json.body ?? $json;\nconst data = body.data ?? body;\nconst eventData = Array.isArray(data.messages) ? data.messages[0] ?? data : data;\nconst rootMessage = eventData.message ?? data.message ?? data;\nconst rootKey = eventData.key ?? data.key ?? rootMessage.key ?? {};\nconst mediaTypes = ['documentMessage', 'imageMessage', 'audioMessage', 'videoMessage'];\nconst messageTypeAliases = {\n  document: 'documentMessage',\n  file: 'documentMessage',\n  image: 'imageMessage',\n  photo: 'imageMessage',\n  picture: 'imageMessage',\n  audio: 'audioMessage',\n  voice: 'audioMessage',\n  ptt: 'audioMessage',\n  video: 'videoMessage',\n};\n\nfunction normalizeMessageType(value) {\n  if (!value) return '';\n  const raw = String(value);\n  return mediaTypes.includes(raw) ? raw : messageTypeAliases[raw] ?? '';\n}\n\nfunction inferMessageTypeFromMime(mimetype) {\n  if (!mimetype) return '';\n  if (mimetype.startsWith('image/')) return 'imageMessage';\n  if (mimetype.startsWith('audio/')) return 'audioMessage';\n  if (mimetype.startsWith('video/')) return 'videoMessage';\n  if (mimetype === 'application/pdf' || mimetype.startsWith('application/')) return 'documentMessage';\n  return '';\n}\n\nfunction looksLikeMedia(value) {\n  if (!value || typeof value !== 'object') return false;\n  return Boolean(\n    value.mimetype ||\n    value.mimeType ||\n    value.url ||\n    value.directPath ||\n    value.mediaKey ||\n    value.fileSha256 ||\n    value.fileEncSha256 ||\n    value.base64 ||\n    value.fileName ||\n    value.filename\n  );\n}\n\nfunction findMedia(value, depth = 0, seen = new Set()) {\n  if (!value || typeof value !== 'object' || depth > 8 || seen.has(value)) return null;\n  seen.add(value);\n\n  for (const type of mediaTypes) {\n    if (value[type]) return { messageType: type, media: value[type] };\n  }\n\n  if (looksLikeMedia(value)) {\n    const mimetype = value.mimetype ?? value.mimeType ?? '';\n    return { messageType: inferMessageTypeFromMime(mimetype), media: value };\n  }\n\n  const priorityKeys = [\n    'message',\n    'ephemeralMessage',\n    'viewOnceMessage',\n    'viewOnceMessageV2',\n    'viewOnceMessageV2Extension',\n    'documentWithCaptionMessage',\n    'editedMessage',\n    'deviceSentMessage',\n    'quotedMessage',\n    'media',\n  ];\n\n  for (const key of priorityKeys) {\n    const found = findMedia(value[key], depth + 1, seen);\n    if (found) return found;\n  }\n\n  for (const nested of Object.values(value)) {\n    const found = findMedia(nested, depth + 1, seen);\n    if (found) return found;\n  }\n\n  return null;\n}\n\nconst declaredMessageType = normalizeMessageType(eventData.messageType ?? data.messageType ?? body.messageType);\nconst foundMedia = findMedia(rootMessage) ?? findMedia(eventData.media) ?? findMedia(data.media) ?? findMedia(data);\nconst messageType = declaredMessageType || foundMedia?.messageType || '';\nconst media = foundMedia?.media ?? (rootMessage && typeof rootMessage === 'object' ? rootMessage[messageType] : null) ?? {};\nconst remoteJid = rootKey.remoteJid ?? eventData.remoteJid ?? data.remoteJid ?? '';\nconst normalizedRemoteJid = String(remoteJid)\n  .replace('@s.whatsapp.net', '')\n  .replace('@lid', '')\n  .replace('@g.us', '');\nconst instance = body.instance ?? data.instance ?? eventData.instance ?? body.instanceName ?? data.instanceName ?? '';\nconst messageId = rootKey.id ?? eventData.id ?? data.id ?? media.id ?? '';\nconst mimetype = media.mimetype ?? media.mimeType ?? eventData.mimetype ?? data.mimetype ?? '';\nconst extensionByMime = {\n  'application/pdf': '.pdf',\n  'image/jpeg': '.jpg',\n  'image/png': '.png',\n  'image/webp': '.webp',\n  'audio/ogg': '.ogg',\n  'audio/mpeg': '.mp3',\n  'audio/mp3': '.mp3',\n  'audio/mp4': '.m4a',\n  'audio/x-m4a': '.m4a',\n  'audio/wav': '.wav',\n  'video/mp4': '.mp4',\n};\nconst extension = extensionByMime[mimetype] ?? '';\nconst fileName = media.fileName ?? media.filename ?? media.title ?? String(messageId || Date.now()) + (extension || '.bin');\nconst base64FromWebhook = media.base64 ?? eventData.base64 ?? data.base64 ?? eventData.media?.base64 ?? data.media?.base64 ?? null;\nconst isAcceptedMime = Boolean(mimetype && (\n  mimetype.startsWith('image/') ||\n  mimetype.startsWith('audio/') ||\n  mimetype.startsWith('video/') ||\n  mimetype === 'application/pdf' ||\n  mimetype.startsWith('application/')\n));\nconst hasFile = mediaTypes.includes(messageType) || isAcceptedMime || Boolean(media.url || media.directPath || media.mediaKey || base64FromWebhook);\n\nreturn [{\n  json: {\n    hasFile,\n    instance,\n    messageId,\n    remoteJid,\n    normalizedRemoteJid,\n    messageType,\n    mimetype,\n    fileName,\n    base64FromWebhook,\n    originalData: eventData,\n  },\n}];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0013-0013-0013-000000000013",
+      "name": "Buscar fontes autorizadas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 220],
+      "continueOnFail": true,
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Configurar workflow').item.json.__config.backendUrl + '/api/settings/authorized-sources?webhook_secret=' + $('Configurar workflow').item.json.__config.webhookSecret }}",
+        "sendHeaders": false,
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0014-0014-0014-000000000014",
+      "name": "Fonte autorizada?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 220],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-auth",
+              "leftValue": "={{ (() => { const src = $('Normalizar mensagem').item.json; const auth = $('Buscar fontes autorizadas').item.json; if (!auth || auth.error || !Array.isArray(auth.numbers)) return false; const normalizeJid = (jid) => String(jid || '').replace('@s.whatsapp.net', '').replace('@lid', '').replace('@g.us', ''); const numbers = auth.numbers || []; const groups = auth.groups || []; const normalizedSource = normalizeJid(src.remoteJid); if (!normalizedSource) return false; return numbers.some(n => normalizeJid(n) === normalizedSource) || groups.some(g => normalizeJid(g) === normalizedSource); })() }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
       }
     },
     {
@@ -36,10 +89,7 @@
       "name": "Tem arquivo?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        1340,
-        300
-      ],
+      "position": [1340, 300],
       "parameters": {
         "conditions": {
           "options": {
@@ -63,67 +113,11 @@
       }
     },
     {
-      "id": "a1b2c3d4-0013-0013-0013-000000000013",
-      "name": "Buscar fontes autorizadas",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        900,
-        220
-      ],
-      "parameters": {
-        "method": "GET",
-        "url": "={{ $('Configurar workflow').item.json.__config.backendUrl + '/api/settings/authorized-sources?webhook_secret=' + $('Configurar workflow').item.json.__config.webhookSecret }}",
-        "sendHeaders": false,
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          }
-        }
-      }
-    },
-    {
-      "id": "a1b2c3d4-0014-0014-0014-000000000014",
-      "name": "Fonte autorizada?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        1120,
-        220
-      ],
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": false,
-            "leftValue": "",
-            "typeValidation": "loose"
-          },
-          "conditions": [
-            {
-              "id": "cond-auth",
-              "leftValue": "={{ (() => { const src = $('Normalizar mensagem').item.json; const auth = $('Buscar fontes autorizadas').item.json; const numbers = auth.numbers || []; const groups = auth.groups || []; const remote = src.remoteJid || ''; const normalized = src.normalizedRemoteJid || ''; return numbers.includes(normalized) || numbers.some(n => remote.includes(n)) || groups.some(g => remote.includes(g) || normalized.includes(g)); })() }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "true"
-              }
-            }
-          ],
-          "combinator": "and"
-        }
-      }
-    },
-    {
       "id": "a1b2c3d4-0102-0102-0102-000000000102",
       "name": "Tem base64 no webhook?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        1560,
-        220
-      ],
+      "position": [1560, 220],
       "parameters": {
         "conditions": {
           "options": {
@@ -151,13 +145,11 @@
       "name": "Baixar midia",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        1780,
-        320
-      ],
+      "position": [1780, 320],
+      "continueOnFail": true,
       "parameters": {
         "method": "POST",
-        "url": "={{ $('Configurar workflow').item.json.__config.evolutionApiUrl + '/chat/getBase64FromMediaMessage/' + $('Normalizar mensagem').item.json.instance }}",
+        "url": "={{ $('Configurar workflow').item.json.__config.evolutionApiUrl + '/chat/getBase64FromMediaMessage/' + ($('Normalizar mensagem').item.json.instance || $('Configurar workflow').item.json.__config.evolutionInstance) }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -175,24 +167,21 @@
         "specifyBody": "json",
         "jsonBody": "={{ { message: $('Normalizar mensagem').item.json.originalData, convertToMp4: false } }}",
         "options": {
+          "timeout": 90000,
           "response": {
             "response": {
               "responseFormat": "json"
             }
           }
         }
-      },
-      "continueOnFail": true
+      }
     },
     {
       "id": "a1b2c3d4-0103-0103-0103-000000000103",
       "name": "Converter midia em arquivo",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        2000,
-        220
-      ],
+      "position": [2000, 220],
       "parameters": {
         "jsCode": "const source = $('Normalizar mensagem').item.json;\nconst response = $json ?? {};\nconst candidates = [\n  typeof response === 'string' ? response : null,\n  response.base64,\n  response.data,\n  response.data?.base64,\n  response.file?.base64,\n  response.media?.base64,\n  response.response?.base64,\n  response.result?.base64,\n  source.base64FromWebhook,\n];\nconst rawBase64 = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);\n\nif (!rawBase64) {\n  return [{\n    json: {\n      ...source,\n      mediaReady: false,\n      error_reason: response.error?.message || response.message || 'Evolution nao retornou base64 da midia',\n      evolution_response: response,\n    },\n  }];\n}\n\nconst dataUriMatch = rawBase64.match(/^data:([^;]+);base64,(.*)$/s);\nconst dataUriMime = dataUriMatch?.[1];\nconst cleanBase64 = (dataUriMatch?.[2] ?? rawBase64).replace(/\\s/g, '');\nlet buffer;\ntry {\n  buffer = Buffer.from(cleanBase64, 'base64');\n} catch (error) {\n  return [{\n    json: {\n      ...source,\n      mediaReady: false,\n      error_reason: 'Base64 invalido: ' + error.message,\n    },\n  }];\n}\n\nif (!buffer.length) {\n  return [{ json: { ...source, mediaReady: false, error_reason: 'Arquivo vazio apos conversao de base64' } }];\n}\n\nfunction sniff(buffer) {\n  if (buffer.subarray(0, 4).toString('ascii') === '%PDF') return { mimetype: 'application/pdf', ext: '.pdf' };\n  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return { mimetype: 'image/jpeg', ext: '.jpg' };\n  if (buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return { mimetype: 'image/png', ext: '.png' };\n  if (buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WEBP') return { mimetype: 'image/webp', ext: '.webp' };\n  if (buffer.subarray(0, 4).toString('ascii') === 'OggS') return { mimetype: 'audio/ogg', ext: '.ogg' };\n  if (buffer.subarray(0, 3).toString('ascii') === 'ID3' || (buffer[0] === 0xff && [0xfb, 0xf3, 0xf2].includes(buffer[1]))) return { mimetype: 'audio/mpeg', ext: '.mp3' };\n  if (buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WAVE') return { mimetype: 'audio/wav', ext: '.wav' };\n  return { mimetype: null, ext: null };\n}\n\nfunction extensionForMime(mimetype) {\n  return {\n    'application/pdf': '.pdf',\n    'image/jpeg': '.jpg',\n    'image/png': '.png',\n    'image/webp': '.webp',\n    'audio/ogg': '.ogg',\n    'audio/mpeg': '.mp3',\n    'audio/mp3': '.mp3',\n    'audio/mp4': '.m4a',\n    'audio/x-m4a': '.m4a',\n    'audio/wav': '.wav',\n    'video/mp4': '.mp4',\n  }[mimetype] || null;\n}\n\nfunction ensureExtension(fileName, ext) {\n  const name = String(fileName || source.messageId || Date.now());\n  if (!ext) return name.includes('.') ? name : name + '.bin';\n  const currentExt = name.match(/\\.[a-z0-9]+$/i)?.[0]?.toLowerCase();\n  if (!currentExt || currentExt === '.bin') return name.replace(/\\.[a-z0-9]+$/i, '') + ext;\n  return name;\n}\n\nconst detected = sniff(buffer);\nconst declaredMime = dataUriMime || response.mimetype || response.mimeType || response.data?.mimetype || source.mimetype || '';\nconst mimetype = (!declaredMime || declaredMime === 'application/octet-stream')\n  ? (detected.mimetype || 'application/octet-stream')\n  : declaredMime;\nconst extension = extensionForMime(mimetype) || detected.ext;\nconst fileName = ensureExtension(response.fileName || response.filename || response.data?.fileName || source.fileName, extension);\nconst binaryData = await this.helpers.prepareBinaryData(buffer, fileName, mimetype);\n\nreturn [{\n  json: {\n    ...source,\n    mediaReady: true,\n    mimetype,\n    fileName,\n    sizeBytes: buffer.length,\n  },\n  binary: {\n    data: binaryData,\n  },\n}];"
       }
@@ -202,10 +191,7 @@
       "name": "Arquivo convertido?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        2220,
-        220
-      ],
+      "position": [2220, 220],
       "parameters": {
         "conditions": {
           "options": {
@@ -233,10 +219,8 @@
       "name": "Upload documento",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        2440,
-        140
-      ],
+      "position": [2440, 140],
+      "continueOnFail": true,
       "parameters": {
         "method": "POST",
         "url": "={{ $('Configurar workflow').item.json.__config.backendUrl + '/api/upload/?webhook_secret=' + $('Configurar workflow').item.json.__config.webhookSecret }}",
@@ -260,19 +244,17 @@
             }
           ]
         },
-        "options": {}
-      },
-      "continueOnFail": true
+        "options": {
+          "timeout": 120000
+        }
+      }
     },
     {
       "id": "a1b2c3d4-0009-0009-0009-000000000009",
       "name": "Upload OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        2660,
-        140
-      ],
+      "position": [2660, 140],
       "parameters": {
         "conditions": {
           "conditions": [
@@ -295,10 +277,8 @@
       "name": "Registrar na fila de retry",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        2880,
-        320
-      ],
+      "position": [2880, 320],
+      "continueOnFail": true,
       "parameters": {
         "method": "POST",
         "url": "={{ $('Configurar workflow').item.json.__config.supabaseUrl + '/rest/v1/upload_queue' }}",
@@ -325,8 +305,10 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { whatsapp_message_id: $('Normalizar mensagem').item.json.messageId || 'sem-id', whatsapp_instance: $('Normalizar mensagem').item.json.instance || 'sem-instancia', error_reason: $json.error_reason || $json.detail || $json.error?.message || $json.message || 'Erro desconhecido no upload via n8n' } }}",
-        "options": {}
+        "jsonBody": "={{ { whatsapp_message_id: $('Normalizar mensagem').item.json.messageId ?? 'sem-id', whatsapp_instance: $('Normalizar mensagem').item.json.instance ?? 'sem-instancia', error_reason: $json.error_reason || $json.detail || $json.error?.message || $json.message || 'Erro desconhecido no upload via n8n' } }}",
+        "options": {
+          "timeout": 15000
+        }
       }
     },
     {
@@ -334,10 +316,7 @@
       "name": "Sucesso",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [
-        2880,
-        60
-      ],
+      "position": [2880, 60],
       "parameters": {}
     },
     {
@@ -345,10 +324,7 @@
       "name": "Ignorar fonte nao autorizada",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [
-        1120,
-        380
-      ],
+      "position": [1120, 380],
       "parameters": {}
     },
     {
@@ -356,192 +332,74 @@
       "name": "Ignorar sem arquivo",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [
-        680,
-        460
-      ],
+      "position": [1340, 460],
       "parameters": {}
-    },
-    {
-      "id": "a1b2c3d4-0000-0000-0000-000000000000",
-      "name": "Configurar workflow",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        460,
-        300
-      ],
-      "parameters": {
-        "jsCode": "const config = {\n  backendUrl: 'https://virginia-backend-virginia-backend.5ivdfc.easypanel.host',\n  webhookSecret: 'COLE_AQUI_VIRGINIA_WEBHOOK_SECRET',\n  evolutionApiUrl: 'https://evolution-api-evolution-api.5ivdfc.easypanel.host',\n  evolutionApiKey: 'COLE_AQUI_EVOLUTION_API_KEY',\n  supabaseUrl: 'https://bbgjnnxstkycthuzjgsm.supabase.co',\n  supabaseServiceKey: 'COLE_AQUI_SUPABASE_SERVICE_KEY',\n};\n\nreturn $input.all().map((item) => ({\n  json: {\n    ...item.json,\n    __config: config,\n  },\n  binary: item.binary,\n}));"
-      }
     }
   ],
   "connections": {
     "WhatsApp Incoming": {
       "main": [
-        [
-          {
-            "node": "Configurar workflow",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Normalizar mensagem": {
-      "main": [
-        [
-          {
-            "node": "Buscar fontes autorizadas",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Tem arquivo?": {
-      "main": [
-        [
-          {
-            "node": "Tem base64 no webhook?",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Ignorar sem arquivo",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Buscar fontes autorizadas": {
-      "main": [
-        [
-          {
-            "node": "Fonte autorizada?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Fonte autorizada?": {
-      "main": [
-        [
-          {
-            "node": "Tem arquivo?",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Ignorar fonte nao autorizada",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Tem base64 no webhook?": {
-      "main": [
-        [
-          {
-            "node": "Converter midia em arquivo",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Baixar midia",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Baixar midia": {
-      "main": [
-        [
-          {
-            "node": "Converter midia em arquivo",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Converter midia em arquivo": {
-      "main": [
-        [
-          {
-            "node": "Arquivo convertido?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Arquivo convertido?": {
-      "main": [
-        [
-          {
-            "node": "Upload documento",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Registrar na fila de retry",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Upload documento": {
-      "main": [
-        [
-          {
-            "node": "Upload OK?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Upload OK?": {
-      "main": [
-        [
-          {
-            "node": "Sucesso",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Registrar na fila de retry",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Configurar workflow", "type": "main", "index": 0 }]
       ]
     },
     "Configurar workflow": {
       "main": [
-        [
-          {
-            "node": "Normalizar mensagem",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Normalizar mensagem", "type": "main", "index": 0 }]
+      ]
+    },
+    "Normalizar mensagem": {
+      "main": [
+        [{ "node": "Buscar fontes autorizadas", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar fontes autorizadas": {
+      "main": [
+        [{ "node": "Fonte autorizada?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fonte autorizada?": {
+      "main": [
+        [{ "node": "Tem arquivo?", "type": "main", "index": 0 }],
+        [{ "node": "Ignorar fonte nao autorizada", "type": "main", "index": 0 }]
+      ]
+    },
+    "Tem arquivo?": {
+      "main": [
+        [{ "node": "Tem base64 no webhook?", "type": "main", "index": 0 }],
+        [{ "node": "Ignorar sem arquivo", "type": "main", "index": 0 }]
+      ]
+    },
+    "Tem base64 no webhook?": {
+      "main": [
+        [{ "node": "Converter midia em arquivo", "type": "main", "index": 0 }],
+        [{ "node": "Baixar midia", "type": "main", "index": 0 }]
+      ]
+    },
+    "Baixar midia": {
+      "main": [
+        [{ "node": "Converter midia em arquivo", "type": "main", "index": 0 }]
+      ]
+    },
+    "Converter midia em arquivo": {
+      "main": [
+        [{ "node": "Arquivo convertido?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Arquivo convertido?": {
+      "main": [
+        [{ "node": "Upload documento", "type": "main", "index": 0 }],
+        [{ "node": "Registrar na fila de retry", "type": "main", "index": 0 }]
+      ]
+    },
+    "Upload documento": {
+      "main": [
+        [{ "node": "Upload OK?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Upload OK?": {
+      "main": [
+        [{ "node": "Sucesso", "type": "main", "index": 0 }],
+        [{ "node": "Registrar na fila de retry", "type": "main", "index": 0 }]
       ]
     }
   },
@@ -552,8 +410,6 @@
   },
   "staticData": null,
   "tags": [
-    {
-      "name": "virginia"
-    }
+    { "name": "virginia" }
   ]
 }
