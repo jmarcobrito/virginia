@@ -40,10 +40,97 @@ MIME_BY_SUFFIX = {
     ".m4a": "audio/mp4",
 }
 
+FORMAT_BY_MIME = {
+    "application/pdf": "PDF",
+    "image/jpeg": "JPG",
+    "image/png": "PNG",
+    "image/webp": "IMG",
+    "audio/mpeg": "AUD",
+    "audio/mp3": "AUD",
+    "audio/mp4": "AUD",
+    "audio/ogg": "AUD",
+    "audio/wav": "AUD",
+    "audio/x-m4a": "AUD",
+    "video/mp4": "AUD",
+}
+
+EXTENSION_BY_MIME = {
+    "application/pdf": ".pdf",
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "audio/mpeg": ".mp3",
+    "audio/mp3": ".mp3",
+    "audio/mp4": ".m4a",
+    "audio/ogg": ".ogg",
+    "audio/wav": ".wav",
+    "audio/x-m4a": ".m4a",
+    "video/mp4": ".mp4",
+}
+
 
 def _safe_filename(filename: str | None) -> str:
     name = Path(filename or "arquivo.bin").name
     return name or "arquivo.bin"
+
+
+def _clean_content_type(content_type: str | None) -> str | None:
+    if not content_type:
+        return None
+    return content_type.split(";", 1)[0].strip().lower() or None
+
+
+def _sniff_media_type(content: bytes) -> tuple[str | None, str | None]:
+    if content.startswith(b"%PDF"):
+        return "application/pdf", ".pdf"
+    if content.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg", ".jpg"
+    if content.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png", ".png"
+    if content[:4] == b"RIFF" and content[8:12] == b"WEBP":
+        return "image/webp", ".webp"
+    if content.startswith(b"OggS"):
+        return "audio/ogg", ".ogg"
+    if content.startswith(b"ID3") or content[:2] in (b"\xff\xfb", b"\xff\xf3", b"\xff\xf2"):
+        return "audio/mpeg", ".mp3"
+    if content[:4] == b"RIFF" and content[8:12] == b"WAVE":
+        return "audio/wav", ".wav"
+    return None, None
+
+
+def _infer_upload_type(
+    filename: str,
+    content_type: str | None,
+    content: bytes,
+) -> tuple[str | None, str | None, str | None]:
+    suffix = Path(filename).suffix.lower()
+    declared_media_type = _clean_content_type(content_type)
+    sniffed_media_type, sniffed_suffix = _sniff_media_type(content)
+
+    media_type = MIME_BY_SUFFIX.get(suffix) or declared_media_type or sniffed_media_type
+    file_format = FORMAT_BY_SUFFIX.get(suffix) or FORMAT_BY_MIME.get(media_type or "")
+    inferred_suffix = EXTENSION_BY_MIME.get(media_type or "")
+
+    if not file_format and sniffed_media_type:
+        media_type = sniffed_media_type
+        file_format = FORMAT_BY_MIME.get(sniffed_media_type)
+        inferred_suffix = sniffed_suffix
+
+    if suffix in ("", ".bin") and sniffed_media_type:
+        media_type = sniffed_media_type if media_type == "application/octet-stream" else media_type
+        file_format = file_format or FORMAT_BY_MIME.get(sniffed_media_type)
+        inferred_suffix = inferred_suffix or sniffed_suffix
+
+    return file_format, media_type, inferred_suffix
+
+
+def _filename_with_extension(filename: str, extension: str | None) -> str:
+    suffix = Path(filename).suffix.lower()
+    if not extension or suffix in FORMAT_BY_SUFFIX:
+        return filename
+
+    stem = Path(filename).stem or "arquivo"
+    return f"{stem}{extension}"
 
 
 def _days_to_expire(expires_at: str | None) -> int | None:
@@ -71,15 +158,6 @@ async def upload_document(
     whatsapp_message_id: Optional[str] = Form(None),
 ):
     filename = _safe_filename(file.filename)
-    suffix = Path(filename).suffix.lower()
-    file_format = FORMAT_BY_SUFFIX.get(suffix)
-    media_type = MIME_BY_SUFFIX.get(suffix) or file.content_type
-
-    if not file_format:
-        raise HTTPException(
-            status_code=415,
-            detail="Tipo de arquivo nao suportado",
-        )
 
     if whatsapp_message_id:
         existing = (
@@ -98,6 +176,21 @@ async def upload_document(
         raise HTTPException(status_code=400, detail="Arquivo vazio")
     if len(content) > settings.max_upload_bytes:
         raise HTTPException(status_code=413, detail="Arquivo excede o tamanho maximo")
+
+    file_format, media_type, inferred_suffix = _infer_upload_type(
+        filename,
+        file.content_type,
+        content,
+    )
+    if not file_format:
+        raise HTTPException(
+            status_code=415,
+            detail="Tipo de arquivo nao suportado",
+        )
+
+    filename = _filename_with_extension(filename, inferred_suffix)
+    suffix = Path(filename).suffix.lower() or inferred_suffix or ".bin"
+    media_type = media_type or MIME_BY_SUFFIX.get(suffix) or file.content_type
 
     tmp_path = None
     try:
